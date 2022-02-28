@@ -33,7 +33,8 @@ class Cargo:
         self.__rust_bindgen_extra_clang_args = env.GetProjectOption("rust_bindgen_extra_clang_args", default = "")
 
         self.__cargo_run_before_project = env.GetProjectOption("cargo_run_before_project", default = "false").lower() == "true"
-        self.__cargo_options = env.GetProjectOption("cargo_options", default = "")
+        self.__cargo_options = env.GetProjectOption("cargo_options", default = "") + "-Z build-std=std,panic_abort"
+
         self.__cargo_profile = env.GetProjectOption(
             "cargo_profile",
             default = "release" if env.GetProjectOption("build_type") == "release" else "debug")
