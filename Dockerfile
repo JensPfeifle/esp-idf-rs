@@ -8,3 +8,6 @@ ENV PLATFORMIO_VERSION="5.1.0"
 RUN pip install -U platformio==${PLATFORMIO_VERSION} && \
   mkdir -p /.platformio && \
   chmod a+rwx /.platformio
+  
+WORKDIR /project 
+RUN bash -c "rustup override set esp"

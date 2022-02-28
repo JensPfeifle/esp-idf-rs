@@ -1,6 +1,0 @@
-# Override rust toolchain for this directory.
-# It may make sense to set this only within the container with `rustup override esp`.
-# See https://rust-lang.github.io/rustup/overrides.html
-
-[toolchain]
-channel = "esp"
