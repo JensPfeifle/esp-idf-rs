@@ -21,6 +21,10 @@
 /// Frame draw time for monochrome mode in 1/10 us.
 #define MONOCHROME_FRAME_TIME 120
 
+// PATCHED:
+// Hardcode config for ED047TC1
+#define CONFIG_EPD_DISPLAY_TYPE_ED047TC1 1
+
 #if defined(CONFIG_EPD_DISPLAY_TYPE_ED097OC4) ||                               \
     defined(CONFIG_EPD_DISPLAY_TYPE_ED097TC2) ||                               \
     defined(CONFIG_EPD_DISPLAY_TYPE_ED097OC4_LQ)
