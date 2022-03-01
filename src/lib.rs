@@ -9,6 +9,8 @@ pub mod c {
 extern "C" fn app_main() {
     println!("Hello, world!");
     unsafe {
-        c::hello_c(0, 90);
+        let options: c::EpdInitOptions = 0u32; // EPD_OPTIONS_DEFAULT
+        c::epd_init(options);
+        c::epd_clear();
     }
 }

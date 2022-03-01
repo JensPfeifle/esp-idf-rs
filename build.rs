@@ -8,11 +8,14 @@ fn main() {
 }
 
 fn run_bindgen(target: &str, out_dir: &Path) {
-    let header = "./components/clib/include/CApi.h";
+    let header = "./components/epdiy/include/epd_driver.h";
     let out = out_dir.join("bindings.rs");
 
     let mut builder = bindgen::Builder::default();
-    builder = builder.header(header);
+    builder = builder.header(header).clang_args([
+        "-I./.pio/build/debug/config/", // sdkconfig.h
+        "-I/root/.platformio/packages/framework-espidf/components/xtensa/include",
+    ]);
     match target {
         "riscv32imc-esp-espidf" => {
             builder = builder.clang_arg("--target=riscv32");
