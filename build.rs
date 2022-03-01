@@ -4,13 +4,16 @@ use std::path::{Path, PathBuf};
 fn main() {
     let target = env::var("TARGET").unwrap();
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
-    run_bindgen(&target, &out_dir);
+    let header = "./components/epdiy/include/epd_driver.h";
+    let out = out_dir.join("epd_driver.rs");
+    run_bindgen(&target, &header, &out);
+
+    let header = "./components/epdiy/include/epd_internals.h";
+    let out = out_dir.join("epd_internals.rs");
+    run_bindgen(&target, &header, &out);
 }
 
-fn run_bindgen(target: &str, out_dir: &Path) {
-    let header = "./components/epdiy/include/epd_driver.h";
-    let out = out_dir.join("bindings.rs");
-
+fn run_bindgen(target: &str, header: &str, out: &Path) {
     let mut builder = bindgen::Builder::default();
     builder = builder.header(header).clang_args([
         "-I./.pio/build/debug/config/", // sdkconfig.h
