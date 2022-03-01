@@ -4,13 +4,13 @@ use std::path::{Path, PathBuf};
 fn main() {
     let target = env::var("TARGET").unwrap();
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
-    run_bindgen(&target, &out_dir);
+
+    let header = "./components/epdiy/include/epd_highlevel.h";
+    let out = out_dir.join("epd_highlevel.rs");
+    run_bindgen(&target, header, &out);
 }
 
-fn run_bindgen(target: &str, out_dir: &Path) {
-    let header = "./components/epdiy/include/epd_driver.h";
-    let out = out_dir.join("bindings.rs");
-
+fn run_bindgen(target: &str, header: &str, out: &Path) {
     let mut builder = bindgen::Builder::default();
     builder = builder.header(header).clang_args([
         "-I./.pio/build/debug/config/", // sdkconfig.h
@@ -33,6 +33,7 @@ fn run_bindgen(target: &str, out_dir: &Path) {
     }
 
     let bindings = builder.generate().expect("Couldn't generate bindings!");
+
     bindings
         .write_to_file(&out)
         .expect("Couldn't save bindings!");
