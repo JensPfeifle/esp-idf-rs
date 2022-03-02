@@ -123,6 +123,7 @@ enum EpdDrawError IRAM_ATTR epd_draw_base(EpdRect area,
                             int temperature,
                             const bool *drawn_lines,
                             const EpdWaveform *waveform) {
+  printf("Hello");
   uint8_t line[EPD_WIDTH / 2];
   memset(line, 255, EPD_WIDTH / 2);
 

@@ -8,8 +8,8 @@ pub fn init_and_clear() {
     }
 }
 
-const EPD_WIDTH: usize = 540;
-const EPD_HEIGHT: usize = 960;
+const EPD_WIDTH: usize = 8; //540;
+const EPD_HEIGHT: usize = 16; //960;
 const FB_SIZE: usize = EPD_WIDTH / 2 * EPD_HEIGHT;
 
 //ED047TC1 (LilyGo 4.7)
@@ -46,23 +46,24 @@ impl Into<epd_driver::EpdRect> for EpdRect {
     }
 }
 
+#[derive(Debug)]
 /// Holds internal state.
 pub struct EpdState {
     /// The "front" framebuffer object.
-    frame_buffer_1: [u8; FB_SIZE],
-    frame_buffer_2: [u8; FB_SIZE],
-    frame_buffer_diff: [u8; FB_SIZE],
-    dirty_lines: [bool; EPD_HEIGHT],
+    frame_buffer_1: Box<[u8; FB_SIZE]>,
+    frame_buffer_2: Box<[u8; FB_SIZE]>,
+    frame_buffer_diff: Box<[u8; FB_SIZE]>,
+    dirty_lines: Box<[bool; EPD_HEIGHT]>,
 }
 
 impl EpdState {
     pub fn new() -> Self {
         // FIXME: use PSRAM/SPIRAM for frame buffers?
         EpdState {
-            frame_buffer_1: [0xff; FB_SIZE],
-            frame_buffer_2: [0xff; FB_SIZE],
-            frame_buffer_diff: [0xff; FB_SIZE],
-            dirty_lines: [false; EPD_HEIGHT],
+            frame_buffer_1: Box::new([0xff; FB_SIZE]),
+            frame_buffer_2: Box::new([0xff; FB_SIZE]),
+            frame_buffer_diff: Box::new([0xff; FB_SIZE]),
+            dirty_lines: Box::new([false; EPD_HEIGHT]),
         }
     }
 
@@ -137,16 +138,56 @@ impl EpdState {
         //temperature: ::std::os::raw::c_int,
         //drawn_lines: *const bool,
         //waveform: *const EpdWaveform,
+        println!("area");
+        let area = EpdRect::FULL_SCREEN.into();
+        let crop = EpdRect::FULL_SCREEN.into();
+        println!("data");
+        let data = self.frame_buffer_1.as_ptr();
+        println!("dirty");
+        let dirty_lines = self.dirty_lines.as_ptr();
+
         unsafe {
-            epd_driver::epd_draw_base(
-                EpdRect::FULL_SCREEN.into(),
-                self.frame_buffer_1.as_ptr(),
-                EpdRect::FULL_SCREEN.into(),
+            println!("waveform");
+            let waveform = &epd_driver::epdiy_ED047TC1 as *const epd_driver::EpdWaveform;
+            println!("about to draw");
+            let result = epd_driver::epd_draw_base(
+                area,
+                data,
+                crop,
                 draw_mode,
                 temperature as i32,
-                self.dirty_lines.as_ptr(),
-                &epd_driver::epdiy_ED047TC1 as *const epd_driver::EpdWaveform,
+                dirty_lines,
+                waveform,
             );
+            println!("checking result");
+            match result {
+                epd_driver::EpdDrawError_EPD_DRAW_SUCCESS => {
+                    println!("draw OK");
+                }
+                _ => {
+                    println!("draw err! {:?}", result);
+                }
+                // No valid framebuffer packing mode was specified.
+                //EPD_DRAW_INVALID_PACKING_MODE = 0x1,
+                // No lookup table implementation for this mode / packing.
+                //EPD_DRAW_LOOKUP_NOT_IMPLEMENTED = 0x2,
+                // The string to draw is invalid.
+                //EPD_DRAW_STRING_INVALID = 0x4,
+                // The string was not empty, but no characters where drawable.
+                //EPD_DRAW_NO_DRAWABLE_CHARACTERS = 0x8,
+                // Allocation failed
+                //EPD_DRAW_FAILED_ALLOC = 0x10,
+                // A glyph could not be drawn, and not fallback was present.
+                //EPD_DRAW_GLYPH_FALLBACK_FAILED = 0x20,
+                // The specified crop area is invalid.
+                //EPD_DRAW_INVALID_CROP = 0x40,
+                // No such mode is available with the current waveform.
+                //EPD_DRAW_MODE_NOT_FOUND = 0x80,
+                // The waveform info file contains no applicable temperature range.
+                //EPD_DRAW_NO_PHASES_AVAILABLE = 0x100,
+                // An invalid combination of font flags was used.
+                //EPD_DRAW_INVALID_FONT_FLAGS = 0x200,
+            }
         }
     }
 }
