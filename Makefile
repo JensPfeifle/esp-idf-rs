@@ -13,3 +13,6 @@ run:
 	 -v /home/jens/git/esp-idf-rs:/project:Z \
 	 -it localhost/esp-idf-rs
 
+# can only run within container
+objdump:
+	 xtensa-esp32-elf-objdump -S -d -l .pio/build/debug/firmware.elf > firmware.elf.dump
