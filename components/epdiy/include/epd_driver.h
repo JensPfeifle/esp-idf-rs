@@ -444,8 +444,7 @@ enum EpdDrawError IRAM_ATTR epd_draw_base(EpdRect area,
                             EpdRect crop_to,
                             enum EpdDrawMode mode,
                             int temperature,
-                            const bool *drawn_lines,
-                            const EpdWaveform *waveform);
+                            const bool *drawn_lines);
 /**
  * Calculate a `MODE_PACKING_1PPB_DIFFERENCE` difference image
  * from two `MODE_PACKING_2PPB` (4 bit-per-pixel) buffers.

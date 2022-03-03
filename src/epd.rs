@@ -1,4 +1,4 @@
-use crate::epd_driver;
+use crate::epd_driver::{self, EpdDrawMode, EpdWaveform, EpdWaveformMode, EpdWaveformTempInterval};
 
 pub fn init_and_clear() {
     unsafe {
@@ -11,8 +11,6 @@ pub fn init_and_clear() {
 const EPD_WIDTH: usize = 8; //540;
 const EPD_HEIGHT: usize = 16; //960;
 const FB_SIZE: usize = EPD_WIDTH / 2 * EPD_HEIGHT;
-
-//ED047TC1 (LilyGo 4.7)
 
 /// An area on the display.
 struct EpdRect {
@@ -50,20 +48,20 @@ impl Into<epd_driver::EpdRect> for EpdRect {
 /// Holds internal state.
 pub struct EpdState {
     /// The "front" framebuffer object.
-    frame_buffer_1: Box<[u8; FB_SIZE]>,
-    frame_buffer_2: Box<[u8; FB_SIZE]>,
-    frame_buffer_diff: Box<[u8; FB_SIZE]>,
-    dirty_lines: Box<[bool; EPD_HEIGHT]>,
+    frame_buffer_1: [u8; FB_SIZE],
+    frame_buffer_2: [u8; FB_SIZE],
+    frame_buffer_diff: [u8; FB_SIZE],
+    dirty_lines: [bool; EPD_HEIGHT],
 }
 
 impl EpdState {
     pub fn new() -> Self {
         // FIXME: use PSRAM/SPIRAM for frame buffers?
         EpdState {
-            frame_buffer_1: Box::new([0xff; FB_SIZE]),
-            frame_buffer_2: Box::new([0xff; FB_SIZE]),
-            frame_buffer_diff: Box::new([0xff; FB_SIZE]),
-            dirty_lines: Box::new([false; EPD_HEIGHT]),
+            frame_buffer_1: [0xff; FB_SIZE],
+            frame_buffer_2: [0xff; FB_SIZE],
+            frame_buffer_diff: [0xff; FB_SIZE],
+            dirty_lines: [true; EPD_HEIGHT],
         }
     }
 
@@ -100,6 +98,12 @@ impl EpdState {
         }
     }
 
+    pub fn epd_fill_rect(&mut self, x: usize, y: usize, w: usize, h: usize, color: u8) {
+        for i in y..y + h {
+            self.epd_draw_hline(x, i, w, color);
+        }
+    }
+
     // * Update the EPD screen to match the content of the front frame buffer.
     // * Prior to this, power to the display must be enabled via `epd_poweron()`
     // * and should be disabled afterwards if no immediate additional updates follow.
@@ -112,24 +116,27 @@ impl EpdState {
     // * @param temperature: Environmental temperature of the display in °C.
     // * @returns `EPD_DRAW_SUCCESS` on sucess, a combination of error flags otherwise.
     // */
-    pub fn epd_hl_update_screen(&self, temperature: u8) -> () {
+    pub fn epd_hl_update_screen(&self, temperature: u32) -> () {
         // FIXME: Return Result
 
         // Go from any grayscale value to another with a flashing update.
-        const MODE_GC16: u32 = 0x2;
+        const MODE_DU: EpdDrawMode = 0x1;
+        const MODE_GC16: EpdDrawMode = 0x2;
+        const MODE_GL16: EpdDrawMode = 0x5;
         // Framebuffer packing modes
         // 4 bit-per pixel framebuffer with 0x0 = black, 0xF = white.
         // The upper nibble corresponds to the left pixel.
         // A byte cannot wrap over multiple rows, images of uneven width
         // must add a padding nibble per line.
-        const MODE_PACKING_2PPB: u32 = 0x80;
+        const MODE_PACKING_2PPB: EpdDrawMode = 0x80;
         // Draw mode
         // Draw on a white background
-        const PREVIOUSLY_WHITE: u32 = 0x200;
+        const PREVIOUSLY_WHITE: EpdDrawMode = 0x200;
 
         let draw_mode = MODE_PACKING_2PPB | PREVIOUSLY_WHITE | MODE_GC16;
         // Assumes previously white.
         println!("{draw_mode}");
+        println!("{draw_mode:x?}");
 
         //area: EpdRect,
         //data: *const u8,
@@ -138,55 +145,72 @@ impl EpdState {
         //temperature: ::std::os::raw::c_int,
         //drawn_lines: *const bool,
         //waveform: *const EpdWaveform,
-        println!("area");
         let area = EpdRect::FULL_SCREEN.into();
-        let crop = EpdRect::FULL_SCREEN.into();
-        println!("data");
+        let crop = EpdRect {
+            x: 0,
+            y: 0,
+            width: 0,
+            height: 0,
+        }
+        .into();
+
+        println!("area {area:?}");
         let data = self.frame_buffer_1.as_ptr();
-        println!("dirty");
+        println!("data {data:?}");
         let dirty_lines = self.dirty_lines.as_ptr();
+        println!("dirty_lines {dirty_lines:?}");
 
         unsafe {
-            println!("waveform");
-            let waveform = &epd_driver::epdiy_ED047TC1 as *const epd_driver::EpdWaveform;
-            println!("about to draw");
-            let result = epd_driver::epd_draw_base(
-                area,
-                data,
-                crop,
-                draw_mode,
-                temperature as i32,
-                dirty_lines,
-                waveform,
-            );
+            let result =
+                epd_driver::epd_draw_base(area, data, crop, 0x282, temperature as i32, dirty_lines);
             println!("checking result");
             match result {
                 epd_driver::EpdDrawError_EPD_DRAW_SUCCESS => {
                     println!("draw OK");
                 }
-                _ => {
-                    println!("draw err! {:?}", result);
-                }
                 // No valid framebuffer packing mode was specified.
-                //EPD_DRAW_INVALID_PACKING_MODE = 0x1,
-                // No lookup table implementation for this mode / packing.
-                //EPD_DRAW_LOOKUP_NOT_IMPLEMENTED = 0x2,
-                // The string to draw is invalid.
-                //EPD_DRAW_STRING_INVALID = 0x4,
-                // The string was not empty, but no characters where drawable.
-                //EPD_DRAW_NO_DRAWABLE_CHARACTERS = 0x8,
-                // Allocation failed
-                //EPD_DRAW_FAILED_ALLOC = 0x10,
-                // A glyph could not be drawn, and not fallback was present.
-                //EPD_DRAW_GLYPH_FALLBACK_FAILED = 0x20,
-                // The specified crop area is invalid.
-                //EPD_DRAW_INVALID_CROP = 0x40,
-                // No such mode is available with the current waveform.
-                //EPD_DRAW_MODE_NOT_FOUND = 0x80,
-                // The waveform info file contains no applicable temperature range.
-                //EPD_DRAW_NO_PHASES_AVAILABLE = 0x100,
-                // An invalid combination of font flags was used.
-                //EPD_DRAW_INVALID_FONT_FLAGS = 0x200,
+                epd_driver::EpdDrawError_EPD_DRAW_INVALID_PACKING_MODE => {
+                    let msg = "No; lookup table implementation for this mode / packing.";
+                    println!("EPD draw error: {msg}");
+                }
+                epd_driver::EpdDrawError_EPD_DRAW_LOOKUP_NOT_IMPLEMENTED => {
+                    let msg = "The string to draw is invalid.";
+                    println!("EPD draw error: {msg}");
+                }
+                epd_driver::EpdDrawError_EPD_DRAW_STRING_INVALID => {}
+                epd_driver::EpdDrawError_EPD_DRAW_NO_DRAWABLE_CHARACTERS => {
+                    let msg = " The string was not empty, but no characters where drawable.";
+                    println!("EPD draw error: {msg}");
+                }
+                epd_driver::EpdDrawError_EPD_DRAW_FAILED_ALLOC => {
+                    let msg = " Allocation failed.";
+                    println!("EPD draw error: {msg}");
+                }
+                epd_driver::EpdDrawError_EPD_DRAW_GLYPH_FALLBACK_FAILED => {
+                    let msg = " A glyph could not be drawn, and not fallback was present.";
+                    println!("EPD draw error: {msg}");
+                }
+
+                epd_driver::EpdDrawError_EPD_DRAW_INVALID_CROP => {
+                    let msg = " The specified crop area is invalid.";
+                    println!("EPD draw error: {msg}");
+                }
+                epd_driver::EpdDrawError_EPD_DRAW_MODE_NOT_FOUND => {
+                    let msg = " No such mode is available with the current waveform.";
+                    println!("EPD draw error: {msg}");
+                }
+                epd_driver::EpdDrawError_EPD_DRAW_NO_PHASES_AVAILABLE => {
+                    let msg = " The waveform info file contains no applicable temperature range.";
+                    println!("EPD draw error: {msg}");
+                }
+
+                epd_driver::EpdDrawError_EPD_DRAW_INVALID_FONT_FLAGS => {
+                    let msg = " An invalid combination of font flags was used.";
+                    println!("EPD draw error: {msg}");
+                }
+                _ => {
+                    println!("Unkown EpdDrawError: {:x?}", result);
+                }
             }
         }
     }

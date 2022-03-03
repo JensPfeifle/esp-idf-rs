@@ -121,11 +121,24 @@ enum EpdDrawError IRAM_ATTR epd_draw_base(EpdRect area,
                             EpdRect crop_to,
                             enum EpdDrawMode mode,
                             int temperature,
-                            const bool *drawn_lines,
-                            const EpdWaveform *waveform) {
-  printf("Hello");
+                            const bool *drawn_lines) {
+
+  ESP_LOGE("epd", "temperature: %d", temperature);
+
+  ESP_LOGE("epd", "size mode: %d", sizeof(mode));
+  ESP_LOGE("epd", "mode: %x", mode);
+  ESP_LOGE("epd", "mode & 0x3F: %x", mode & 0x3F);
+
+  enum EpdDrawMode m = MODE_PACKING_2PPB | PREVIOUSLY_WHITE | MODE_GC16;
+  ESP_LOGE("epd", "size m: %d", sizeof(m));
+  ESP_LOGE("epd", "m: %x", m);
+  ESP_LOGE("epd", "m & 0x3F: %x", m & 0x3F);
+
+
   uint8_t line[EPD_WIDTH / 2];
   memset(line, 255, EPD_WIDTH / 2);
+
+  const EpdWaveform *waveform = EPD_BUILTIN_WAVEFORM;
 
   int waveform_range = waveform_temp_range_index(waveform, temperature);
   if (waveform_range < 0) {
@@ -135,6 +148,17 @@ enum EpdDrawError IRAM_ATTR epd_draw_base(EpdRect area,
   uint8_t frame_count = 0;
   const EpdWaveformPhases* waveform_phases = NULL;
 
+  ESP_LOGE("epd", "waveform");
+  ESP_LOGE("epd", "%d", waveform->num_modes);
+  ESP_LOGE("epd", "%d", waveform->num_temp_ranges);
+  ESP_LOGE("epd", "%d", waveform->mode_data[0]->type);
+  ESP_LOGE("epd", "%d", waveform->mode_data[1]->type);
+  ESP_LOGE("epd", "%d", waveform->mode_data[2]->type);
+
+
+  ESP_LOGE("epd", "END waveform");
+
+  return EPD_DRAW_SUCCESS;
   // no waveform required for monochrome mode
   if (!(mode & MODE_EPDIY_MONOCHROME)) {
       waveform_index = get_waveform_index(waveform, mode);
