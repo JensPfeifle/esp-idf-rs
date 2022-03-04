@@ -124,11 +124,11 @@ enum EpdDrawError epd_hl_update_area(EpdiyHighlevelState* state, enum EpdDrawMod
 
   enum EpdDrawError err;
   if (previously_white) {
-      err = epd_draw_base(epd_full_screen(), state->front_fb, diff_area, MODE_PACKING_2PPB | PREVIOUSLY_WHITE | mode, temperature, state->dirty_lines);
+      err = epd_draw_base(epd_full_screen(), state->front_fb, MODE_PACKING_2PPB | PREVIOUSLY_WHITE | mode, temperature, state->dirty_lines);
   } else if (previously_black) {
-      err = epd_draw_base(epd_full_screen(), state->front_fb, diff_area, MODE_PACKING_2PPB | PREVIOUSLY_BLACK | mode, temperature, state->dirty_lines);
+      err = epd_draw_base(epd_full_screen(), state->front_fb, MODE_PACKING_2PPB | PREVIOUSLY_BLACK | mode, temperature, state->dirty_lines);
   } else {
-      err = epd_draw_base(epd_full_screen(), state->difference_fb, diff_area, MODE_PACKING_1PPB_DIFFERENCE | mode, temperature, state->dirty_lines);
+      err = epd_draw_base(epd_full_screen(), state->difference_fb, MODE_PACKING_1PPB_DIFFERENCE | mode, temperature, state->dirty_lines);
   }
 
   for (int l=diff_area.y; l < diff_area.y + diff_area.height; l++) {

@@ -1,13 +1,14 @@
-#include "epd_temperature.h"
 #include "display_ops.h"
 #include "epd_driver.h"
+#include "epd_temperature.h"
 #include "include/epd_driver.h"
 #include "include/epd_internals.h"
 #include "lut.h"
+#include <stdio.h>
 
 #include "driver/rtc_io.h"
-#include "esp_types.h"
 #include "esp_log.h"
+#include "esp_types.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
@@ -41,7 +42,7 @@ static OutputParams feed_params;
 
 // Space to use for the EPD output lookup table, which
 // is calculated for each cycle.
-static uint8_t* conversion_lut;
+static uint8_t *conversion_lut;
 
 void epd_push_pixels(EpdRect area, short time, int color) {
 
@@ -83,9 +84,7 @@ void epd_push_pixels(EpdRect area, short time, int color) {
   epd_end_frame();
 }
 
-
 ///////////////////////////// Coordination ///////////////////////////////
-
 
 /**
  * Find the waveform temperature range index for a given temperature in °C.
@@ -93,35 +92,47 @@ void epd_push_pixels(EpdRect area, short time, int color) {
  * closest one.
  * Returns -1 if the waveform does not contain any temperature range.
  */
-int waveform_temp_range_index(const EpdWaveform* waveform, int temperature) {
-    int idx = 0;
-    if (waveform->num_temp_ranges == 0) {
-        return -1;
-    }
-    while (idx < waveform->num_temp_ranges - 1
-            && waveform->temp_intervals[idx].min < temperature) {
-        idx++;
-    }
-    return idx;
-}
-
-////////////////////////////////  API Procedures //////////////////////////////////
-
-static int get_waveform_index(const EpdWaveform* waveform, enum EpdDrawMode mode) {
-    for (int i=0; i < waveform->num_modes; i++) {
-        if (waveform->mode_data[i]->type == (mode & 0x3F)) {
-            return i;
-        }
-    }
+int waveform_temp_range_index(const EpdWaveform *waveform, int temperature) {
+  int idx = 0;
+  if (waveform->num_temp_ranges == 0) {
     return -1;
+  }
+  while (idx < waveform->num_temp_ranges - 1 &&
+         waveform->temp_intervals[idx].min < temperature) {
+    idx++;
+  }
+  return idx;
 }
 
-enum EpdDrawError IRAM_ATTR epd_draw_base(EpdRect area,
-                            const uint8_t *data,
-                            EpdRect crop_to,
-                            enum EpdDrawMode mode,
-                            int temperature,
-                            const bool *drawn_lines) {
+////////////////////////////////  API Procedures
+/////////////////////////////////////
+
+static int get_waveform_index(const EpdWaveform *waveform,
+                              enum EpdDrawMode mode) {
+  for (int i = 0; i < waveform->num_modes; i++) {
+    if (waveform->mode_data[i]->type == (mode & 0x3F)) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+bool testfn(EpdRect area, const uint8_t *data, int temperature,
+            const bool *drawn_lines) {
+
+  printf("hello_c with lots: value = %d\n", temperature);
+  return true;
+}
+
+enum EpdDrawError IRAM_ATTR epd_draw_base(EpdRect area, const uint8_t *data,
+                                          enum EpdDrawMode mode,
+                                          int temperature,
+                                          const bool *drawn_lines) {
+
+  printf("Hello from draw_base, temperature = %d\n", temperature);
+  printf("Hello from draw_base, data = %p\n", data);
+  printf("Hello from draw_base, area.x = %d\n", area.x);
+  printf("Hello from drawidth_base, area.width = %d\n", area.width);
 
   ESP_LOGE("epd", "temperature: %d", temperature);
 
@@ -134,6 +145,12 @@ enum EpdDrawError IRAM_ATTR epd_draw_base(EpdRect area,
   ESP_LOGE("epd", "m: %x", m);
   ESP_LOGE("epd", "m & 0x3F: %x", m & 0x3F);
 
+  EpdRect crop_to = {
+      .x = 0,
+      .y = 0,
+      .width = 0,
+      .height = 0,
+  };
 
   uint8_t line[EPD_WIDTH / 2];
   memset(line, 255, EPD_WIDTH / 2);
@@ -146,7 +163,7 @@ enum EpdDrawError IRAM_ATTR epd_draw_base(EpdRect area,
   }
   int waveform_index = 0;
   uint8_t frame_count = 0;
-  const EpdWaveformPhases* waveform_phases = NULL;
+  const EpdWaveformPhases *waveform_phases = NULL;
 
   ESP_LOGE("epd", "waveform");
   ESP_LOGE("epd", "%d", waveform->num_modes);
@@ -155,46 +172,44 @@ enum EpdDrawError IRAM_ATTR epd_draw_base(EpdRect area,
   ESP_LOGE("epd", "%d", waveform->mode_data[1]->type);
   ESP_LOGE("epd", "%d", waveform->mode_data[2]->type);
 
-
   ESP_LOGE("epd", "END waveform");
 
-  return EPD_DRAW_SUCCESS;
+  // return EPD_DRAW_SUCCESS;
+
   // no waveform required for monochrome mode
   if (!(mode & MODE_EPDIY_MONOCHROME)) {
-      waveform_index = get_waveform_index(waveform, mode);
-      if (waveform_index < 0) {
-        return EPD_DRAW_MODE_NOT_FOUND;
-      }
+    waveform_index = get_waveform_index(waveform, mode);
+    if (waveform_index < 0) {
+      return EPD_DRAW_MODE_NOT_FOUND;
+    }
 
-      waveform_phases = waveform->mode_data[waveform_index]
-                                  ->range_data[waveform_range];
-       // FIXME: error if not present
-      frame_count = waveform_phases->phases;
+    waveform_phases =
+        waveform->mode_data[waveform_index]->range_data[waveform_range];
+    // FIXME: error if not present
+    frame_count = waveform_phases->phases;
   } else {
-      frame_count = 1;
+    frame_count = 1;
   }
 
   if (crop_to.width < 0 || crop_to.height < 0) {
-      return EPD_DRAW_INVALID_CROP;
+    return EPD_DRAW_INVALID_CROP;
   }
 
   const bool crop = (crop_to.width > 0 && crop_to.height > 0);
-  if (crop && (crop_to.width > area.width
-              || crop_to.height > area.height
-              || crop_to.x > area.width
-              || crop_to.y > area.height)) {
-      return EPD_DRAW_INVALID_CROP;
+  if (crop && (crop_to.width > area.width || crop_to.height > area.height ||
+               crop_to.x > area.width || crop_to.y > area.height)) {
+    return EPD_DRAW_INVALID_CROP;
   }
 
   for (uint8_t k = 0; k < frame_count; k++) {
 
-	int frame_time = DEFAULT_FRAME_TIME;
-	if (waveform_phases != NULL && waveform_phases->phase_times != NULL) {
-		frame_time = waveform_phases->phase_times[k];
-	}
+    int frame_time = DEFAULT_FRAME_TIME;
+    if (waveform_phases != NULL && waveform_phases->phase_times != NULL) {
+      frame_time = waveform_phases->phase_times[k];
+    }
 
     if (mode & MODE_EPDIY_MONOCHROME) {
-        frame_time = MONOCHROME_FRAME_TIME;
+      frame_time = MONOCHROME_FRAME_TIME;
     }
 
     fetch_params.area = area;
@@ -232,9 +247,10 @@ enum EpdDrawError IRAM_ATTR epd_draw_base(EpdRect area,
 
     enum EpdDrawError all_errors = fetch_params.error | feed_params.error;
     if (all_errors != EPD_DRAW_SUCCESS) {
-        return all_errors;
+      return all_errors;
     }
   }
+
   return EPD_DRAW_SUCCESS;
 }
 
@@ -256,8 +272,6 @@ void epd_clear_area_cycles(EpdRect area, int cycles, int cycle_time) {
   }
 }
 
-
-
 void epd_init(enum EpdInitOptions options) {
 
   gpio_hold_dis(CKH); // freeing CKH after wakeup
@@ -275,7 +289,8 @@ void epd_init(enum EpdInitOptions options) {
     return;
   }
 
-  conversion_lut = (uint8_t *)heap_caps_malloc(lut_size, MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL);
+  conversion_lut = (uint8_t *)heap_caps_malloc(
+      lut_size, MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL);
   if (conversion_lut == NULL) {
     ESP_LOGE("epd", "could not allocate LUT!");
   }
@@ -293,15 +308,15 @@ void epd_init(enum EpdInitOptions options) {
   feed_params.start_smphr = xSemaphoreCreateBinary();
 
   RTOS_ERROR_CHECK(xTaskCreatePinnedToCore((void (*)(void *))provide_out,
-                                           "epd_fetch", (1 << 12), &fetch_params, 5,
-                                           NULL, 0));
+                                           "epd_fetch", (1 << 12),
+                                           &fetch_params, 5, NULL, 0));
 
   RTOS_ERROR_CHECK(xTaskCreatePinnedToCore((void (*)(void *))feed_display,
-                                           "epd_feed", 1 << 12, &feed_params,
-                                           5, NULL, 1));
+                                           "epd_feed", 1 << 12, &feed_params, 5,
+                                           NULL, 1));
 
-  //conversion_lut = (uint8_t *)heap_caps_malloc(1 << 16, MALLOC_CAP_8BIT);
-  //assert(conversion_lut != NULL);
+  // conversion_lut = (uint8_t *)heap_caps_malloc(1 << 16, MALLOC_CAP_8BIT);
+  // assert(conversion_lut != NULL);
   int queue_len = 32;
   if (options & EPD_FEED_QUEUE_32) {
     queue_len = 32;
@@ -313,102 +328,96 @@ void epd_init(enum EpdInitOptions options) {
 
 void epd_deinit() {
   // FIXME: deinit processes
-#if defined(CONFIG_EPD_BOARD_REVISION_V5) || defined(CONFIG_EPD_BOARD_REVISION_V6)
+#if defined(CONFIG_EPD_BOARD_REVISION_V5) ||                                   \
+    defined(CONFIG_EPD_BOARD_REVISION_V6)
 
   gpio_reset_pin(CKH);
   rtc_gpio_isolate(CKH);
-  //gpio_reset_pin(CFG_INTR);
-  //rtc_gpio_isolate(CFG_INTR);
+  // gpio_reset_pin(CFG_INTR);
+  // rtc_gpio_isolate(CFG_INTR);
 #endif
   epd_base_deinit();
 }
 
+EpdRect epd_difference_image_base(const uint8_t *to, const uint8_t *from,
+                                  EpdRect crop_to, int fb_width, int fb_height,
+                                  uint8_t *interlaced, bool *dirty_lines,
+                                  uint8_t *from_or, uint8_t *from_and) {
+  assert(from_or != NULL);
+  assert(from_and != NULL);
+  // OR over all pixels of the "from"-image
+  *from_or = 0x00;
+  // AND over all pixels of the "from"-image
+  *from_and = 0x0F;
 
-EpdRect epd_difference_image_base(
-    const uint8_t* to,
-    const uint8_t* from,
-    EpdRect crop_to,
-    int fb_width,
-    int fb_height,
-    uint8_t* interlaced,
-    bool* dirty_lines,
-    uint8_t* from_or,
-    uint8_t* from_and
-) {
-    assert(from_or != NULL);
-    assert(from_and != NULL);
-    // OR over all pixels of the "from"-image
-    *from_or = 0x00;
-    // AND over all pixels of the "from"-image
-    *from_and = 0x0F;
+  uint8_t dirty_cols[EPD_WIDTH] = {0};
+  int x_end = min(fb_width, crop_to.x + crop_to.width);
+  int y_end = min(fb_height, crop_to.y + crop_to.height);
 
-    uint8_t dirty_cols[EPD_WIDTH] = {0};
-    int x_end = min(fb_width, crop_to.x + crop_to.width);
-    int y_end = min(fb_height, crop_to.y + crop_to.height);
-
-    for (int y=crop_to.y; y < y_end; y++) {
-        uint8_t dirty = 0;
-        for (int x = crop_to.x; x < x_end; x++) {
-            uint8_t t = *(to + y*fb_width / 2 + x / 2);
-            t = (x % 2) ? (t >> 4) : (t & 0x0f);
-            uint8_t f = *(from + y*fb_width / 2+ x / 2);
-            f = (x % 2) ? (f >> 4) : (f & 0x0f);
-            *from_or |= f;
-            *from_and &= f;
-            dirty |= (t ^ f);
-            dirty_cols[x] |= (t ^ f);
-            interlaced[y * fb_width + x] = (t << 4) | f;
-        }
-        dirty_lines[y] = dirty > 0;
+  for (int y = crop_to.y; y < y_end; y++) {
+    uint8_t dirty = 0;
+    for (int x = crop_to.x; x < x_end; x++) {
+      uint8_t t = *(to + y * fb_width / 2 + x / 2);
+      t = (x % 2) ? (t >> 4) : (t & 0x0f);
+      uint8_t f = *(from + y * fb_width / 2 + x / 2);
+      f = (x % 2) ? (f >> 4) : (f & 0x0f);
+      *from_or |= f;
+      *from_and &= f;
+      dirty |= (t ^ f);
+      dirty_cols[x] |= (t ^ f);
+      interlaced[y * fb_width + x] = (t << 4) | f;
     }
-    int min_x, min_y, max_x, max_y;
-    for (min_x = crop_to.x; min_x < x_end; min_x++) {
-      if (dirty_cols[min_x] != 0) break;
-    }
-    for (max_x = x_end - 1; max_x >= crop_to.x; max_x--) {
-      if (dirty_cols[max_x] != 0) break;
-    }
-    for (min_y = crop_to.y; min_y < y_end; min_y++) {
-      if (dirty_lines[min_y] != 0) break;
-    }
-    for (max_y = y_end - 1; max_y >= crop_to.y; max_y--) {
-      if (dirty_lines[max_y] != 0) break;
-    }
-    EpdRect crop_rect = {
+    dirty_lines[y] = dirty > 0;
+  }
+  int min_x, min_y, max_x, max_y;
+  for (min_x = crop_to.x; min_x < x_end; min_x++) {
+    if (dirty_cols[min_x] != 0)
+      break;
+  }
+  for (max_x = x_end - 1; max_x >= crop_to.x; max_x--) {
+    if (dirty_cols[max_x] != 0)
+      break;
+  }
+  for (min_y = crop_to.y; min_y < y_end; min_y++) {
+    if (dirty_lines[min_y] != 0)
+      break;
+  }
+  for (max_y = y_end - 1; max_y >= crop_to.y; max_y--) {
+    if (dirty_lines[max_y] != 0)
+      break;
+  }
+  EpdRect crop_rect = {
       .x = min_x,
       .y = min_y,
       .width = max(max_x - min_x + 1, 0),
       .height = max(max_y - min_y + 1, 0),
-    };
-    return crop_rect;
+  };
+  return crop_rect;
 }
 
-EpdRect epd_difference_image(
-    const uint8_t* to,
-    const uint8_t* from,
-    uint8_t* interlaced,
-    bool* dirty_lines
-) {
+EpdRect epd_difference_image(const uint8_t *to, const uint8_t *from,
+                             uint8_t *interlaced, bool *dirty_lines) {
   uint8_t from_or = 0;
   uint8_t from_and = 0;
-  return epd_difference_image_base(to, from, epd_full_screen(), EPD_WIDTH, EPD_HEIGHT, interlaced, dirty_lines, &from_or, &from_and);
+  return epd_difference_image_base(to, from, epd_full_screen(), EPD_WIDTH,
+                                   EPD_HEIGHT, interlaced, dirty_lines,
+                                   &from_or, &from_and);
 }
 
-EpdRect epd_difference_image_cropped(
-    const uint8_t* to,
-    const uint8_t* from,
-    EpdRect crop_to,
-    uint8_t* interlaced,
-    bool* dirty_lines,
-    bool* previously_white,
-    bool* previously_black
-) {
+EpdRect epd_difference_image_cropped(const uint8_t *to, const uint8_t *from,
+                                     EpdRect crop_to, uint8_t *interlaced,
+                                     bool *dirty_lines, bool *previously_white,
+                                     bool *previously_black) {
 
   uint8_t from_or, from_and;
 
-  EpdRect result = epd_difference_image_base(to, from, crop_to, EPD_WIDTH, EPD_HEIGHT, interlaced, dirty_lines, &from_or, &from_and);
+  EpdRect result =
+      epd_difference_image_base(to, from, crop_to, EPD_WIDTH, EPD_HEIGHT,
+                                interlaced, dirty_lines, &from_or, &from_and);
 
-  if (previously_white != NULL) *previously_white = (from_and == 0x0F);
-  if (previously_black != NULL) *previously_black = (from_or == 0x00);
+  if (previously_white != NULL)
+    *previously_white = (from_and == 0x0F);
+  if (previously_black != NULL)
+    *previously_black = (from_or == 0x00);
   return result;
 }

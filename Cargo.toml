@@ -12,6 +12,13 @@ autobenches = true
 publish = true
 
 [dependencies]
+embedded-hal = "0.2.5"
+esp-idf-hal = "0.33"
+esp-idf-sys = "0.30"
+
+#https://github.com/esp-rs/esp-idf-hal/issues/47
+#[patch.crates-io]
+#embuild = { git = 'https://github.com/ivmarkov/embuild' }
 
 [dev-dependencies]
 

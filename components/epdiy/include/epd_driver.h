@@ -441,7 +441,6 @@ void epd_push_pixels(EpdRect area, short time, int color);
  */
 enum EpdDrawError IRAM_ATTR epd_draw_base(EpdRect area,
                             const uint8_t *data,
-                            EpdRect crop_to,
                             enum EpdDrawMode mode,
                             int temperature,
                             const bool *drawn_lines);
@@ -500,6 +499,14 @@ void epd_draw_rotated_image(EpdRect image_area, const uint8_t *image_buffer, uin
  * With an optional transparent color (color key transparency)
  */
 void epd_draw_rotated_transparent_image(EpdRect image_area, const uint8_t *image_buffer, uint8_t *framebuffer, uint8_t transparent_color) ;
+
+
+extern bool testfn(
+   EpdRect area,
+   const uint8_t *data,
+   int temperature,
+   const bool *drawn_lines);
+
 
 #ifdef __cplusplus
 }

@@ -1,6 +1,8 @@
 #include "epd_driver.h"
 #include "epd_temperature.h"
 
+#include <stdio.h>
+
 #include "esp_assert.h"
 #include "esp_heap_caps.h"
 #include "esp_log.h"
@@ -376,7 +378,7 @@ enum EpdDrawError epd_draw_image(EpdRect area, const uint8_t *data, const EpdWav
         .width = 0,
         .height = 0,
     };
-    return epd_draw_base(area, data, no_crop, EPD_MODE_DEFAULT, temperature, NULL);
+    return epd_draw_base(area, data, EPD_MODE_DEFAULT, temperature, NULL);
 }
 
 void epd_set_rotation(enum EpdRotation rotation) {
@@ -470,3 +472,4 @@ void epd_draw_rotated_image(EpdRect image_area, const uint8_t *image_buffer, uin
       epd_copy_to_framebuffer(image_area, image_buffer, framebuffer);
     }
 }
+

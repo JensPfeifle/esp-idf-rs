@@ -22,7 +22,7 @@ fn run_bindgen(target: &str, header: &str, out: &Path) {
     let mut builder = bindgen::Builder::default();
     builder = builder.header(header).clang_args([
         "-I./.pio/build/debug/config/", // sdkconfig.h
-        "-I/Users/Jens/.platformio/packages/framework-espidf/components/xtensa/include",
+        "-I/root/.platformio/packages/framework-espidf/components/xtensa/include",
     ]);
     match target {
         "riscv32imc-esp-espidf" => {
