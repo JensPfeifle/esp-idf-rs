@@ -1,5 +1,6 @@
 use crate::epd_highlevel;
 use crate::epd_highlevel::EpdiyHighlevelState;
+use crate::firasans::FiraSans_12;
 
 const EPD_WIDTH: usize = 960;
 const EPD_HEIGHT: usize = 540;
@@ -16,7 +17,7 @@ pub struct Epd {
     epd_state: EpdState,
 }
 
-impl Epd {
+impl<'a> Epd {
     pub fn new() -> Self {
         Self {
             epd_state: EpdState::Uninitialized,
@@ -96,9 +97,31 @@ impl Epd {
     pub fn clear(&self) -> () {
         match self.epd_state {
             EpdState::Uninitialized => {}
-            EpdState::HighlevelState(mut state) => {
+            EpdState::HighlevelState(_) => {
                 unsafe { epd_highlevel::epd_clear() };
             }
+        }
+    }
+
+    fn get_fb(&self) -> Option<&'a mut [u8]> {
+        match self.epd_state {
+            EpdState::Uninitialized => None,
+            EpdState::HighlevelState(state) => {
+                let fb: &mut [u8] =
+                    unsafe { std::slice::from_raw_parts_mut(state.front_fb, FB_SIZE) };
+                return Some(fb);
+            }
+        }
+    }
+
+    pub fn write_text(&mut self, x: usize, y: usize, text: String) {
+        let t = text.as_ptr() as *const i8;
+        let font = &FiraSans_12 as *const epd_highlevel::EpdFont;
+        let x_ptr = &x as *const usize as *mut i32;
+        let y_ptr = &y as *const usize as *mut i32;
+
+        if let Some(fb) = self.get_fb() {
+            unsafe { epd_highlevel::epd_write_default(font, t, x_ptr, y_ptr, fb.as_mut_ptr()) };
         }
     }
 
