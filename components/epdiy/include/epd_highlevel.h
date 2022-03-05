@@ -91,7 +91,7 @@ typedef struct {
  * 		If you did not create your own, this will be `EPD_BUILTIN_WAVEFORM`.
  * @returns An initialized state object.
  */
-EpdiyHighlevelState epd_hl_init(const EpdWaveform* waveform);
+EpdiyHighlevelState epd_hl_init();
 
 /// Get a reference to the front framebuffer.
 /// Use this to draw on the framebuffer before updating the screen with `epd_hl_update_screen()`.

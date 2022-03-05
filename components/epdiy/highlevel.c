@@ -22,8 +22,10 @@ static bool already_initialized = 0;
 
 const static int fb_size = EPD_WIDTH / 2 * EPD_HEIGHT;
 
-EpdiyHighlevelState epd_hl_init(const EpdWaveform* waveform) {
+EpdiyHighlevelState epd_hl_init() {
   assert(!already_initialized);
+
+  const EpdWaveform *waveform = EPD_BUILTIN_WAVEFORM;
   assert(waveform != NULL);
 
   #ifndef CONFIG_ESP32_SPIRAM_SUPPORT
