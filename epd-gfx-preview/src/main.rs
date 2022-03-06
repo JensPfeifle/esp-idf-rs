@@ -110,9 +110,11 @@ impl World {
 
     fn update(&mut self) {
         epd_gfx::set_all(&mut self.fb, 0xFF);
-        //epd_gfx::fill_rect(&mut self.fb, 0, 0, 500, 300, 0x00);
         epd_gfx::fill_rect(&mut self.fb, 50, 75, 400, 250, 0x00);
-        //epd.write_text(100, 50, "Hello, world!".to_string());
+        epd_gfx::fill_rect(&mut self.fb, 200, 150, 400, 250, 0x88);
+        epd_gfx::fill_rect(&mut self.fb, 50, 700, 400, 200, 0x00);
+        epd_gfx::fill_rect(&mut self.fb, 75, 701, 400, 200, 0x00);
+        epd_gfx::font::draw_text(&mut self.fb, 0, 0, "Hello from RustType!", 240);
     }
 
     /// Draw the `World` state to the frame buffer.
@@ -141,6 +143,7 @@ impl World {
                     fb_byte & 0x0F
                 }
             };
+
             // Scale range from 4 bits to 1 byte (0-255).
             let rgba = [shade * 17, shade * 17, shade * 17, 0xff];
             pixel.copy_from_slice(&rgba);
