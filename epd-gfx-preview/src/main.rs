@@ -9,15 +9,20 @@ use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
 
-const WIDTH: u32 = 540;
-const HEIGHT: u32 = 960;
+const WIDTH: u32 = 960;
+const HEIGHT: u32 = 540;
+const ROTATED: bool = true;
 
 fn main() -> Result<(), Error> {
     env_logger::init();
     let event_loop = EventLoop::new();
     let mut input = WinitInputHelper::new();
     let window = {
-        let size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
+        let size = if ROTATED {
+            LogicalSize::new(HEIGHT as f64, WIDTH as f64)
+        } else {
+            LogicalSize::new(WIDTH as f64, HEIGHT as f64)
+        };
         WindowBuilder::new()
             .with_title("Hello Pixels")
             .with_inner_size(size)
@@ -29,7 +34,11 @@ fn main() -> Result<(), Error> {
     let mut pixels = {
         let window_size = window.inner_size();
         let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
-        Pixels::new(WIDTH, HEIGHT, surface_texture)?
+        if ROTATED {
+            Pixels::new(HEIGHT, WIDTH, surface_texture)?
+        } else {
+            Pixels::new(WIDTH, HEIGHT, surface_texture)?
+        }
     };
 
     let mut world = World::new();
@@ -96,10 +105,18 @@ impl World {
     /// Assumes the default texture format: `wgpu::TextureFormat::Rgba8UnormSrgb`
     fn draw(&self, frame: &mut [u8]) {
         for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
-            let x = (i % WIDTH as usize) as u32;
-            let y = (i / WIDTH as usize) as u32;
+            let mut x = (i % WIDTH as usize) as u32;
+            let mut y = (i / WIDTH as usize) as u32;
 
-            let fb_index = y * WIDTH / 2 + x / 2;
+            let fb_index = if ROTATED {
+                x = (i / HEIGHT as usize) as u32;
+                y = (i % HEIGHT as usize) as u32;
+                x = WIDTH - x - 1;
+                (y * WIDTH + x) / 2
+            } else {
+                (y * WIDTH + x) / 2
+            };
+
             let fb_byte = self.fb[fb_index as usize];
 
             let shade = {
