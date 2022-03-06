@@ -9,15 +9,15 @@ use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
 
-const WIDTH: u32 = 540;
-const HEIGHT: u32 = 960;
+const WINDOW_WIDTH: u32 = 540;
+const WINDOW_HEIGHT: u32 = 960;
 
 fn main() -> Result<(), Error> {
     env_logger::init();
     let event_loop = EventLoop::new();
     let mut input = WinitInputHelper::new();
     let window = {
-        let size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
+        let size = LogicalSize::new(WINDOW_WIDTH as f64, WINDOW_HEIGHT as f64);
         WindowBuilder::new()
             .with_title("Hello Pixels")
             .with_inner_size(size)
@@ -29,7 +29,7 @@ fn main() -> Result<(), Error> {
     let mut pixels = {
         let window_size = window.inner_size();
         let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
-        Pixels::new(WIDTH, HEIGHT, surface_texture)?
+        Pixels::new(WINDOW_WIDTH, WINDOW_HEIGHT, surface_texture)?
     };
 
     let mut world = World::new();
@@ -68,7 +68,7 @@ fn main() -> Result<(), Error> {
     });
 }
 
-const FB_SIZE: usize = WIDTH as usize * HEIGHT as usize / 2;
+const FB_SIZE: usize = WINDOW_WIDTH as usize * WINDOW_HEIGHT as usize / 2;
 
 struct World {
     //  4 bits per pixel, 16 grayscale shades
@@ -96,21 +96,22 @@ impl World {
     /// Assumes the default texture format: `wgpu::TextureFormat::Rgba8UnormSrgb`
     fn draw(&self, frame: &mut [u8]) {
         for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
-            let x = (i % WIDTH as usize) as u32;
-            let y = (i / WIDTH as usize) as u32;
+            let screen_x = (i % 540 as usize) as u32;
+            let screen_y = (i / 540 as usize) as u32;
 
-            let fb_index = y * WIDTH / 2 + x / 2;
-            let fb_byte = self.fb[fb_index as usize];
+            let (fb_x, fb_y) = epd_gfx::to_landscape(screen_x, screen_y).unwrap();
+            let fb_index = ((fb_y * 960 + fb_x) / 2) as usize;
+            let (left, right) = epd_gfx::split_byte(self.fb[fb_index]);
 
             let shade = {
-                if x % 2 == 0 {
-                    (fb_byte & 0xF0) >> 4
+                if fb_x % 2 == 0 {
+                    right
                 } else {
-                    fb_byte & 0x0F
+                    left
                 }
             };
             // Scale range from 4 bits to 1 byte (0-255).
-            let rgba = [shade * 17, shade * 17, shade * 17, 0xff];
+            let rgba = [shade * 15, shade * 15, shade * 15, 0xff];
             pixel.copy_from_slice(&rgba);
         }
     }
