@@ -36,64 +36,6 @@ impl<'a> Epd {
         self.epd_state = EpdState::HighlevelState(state);
     }
 
-    pub fn set_all(&mut self, color: u8) {
-        match self.epd_state {
-            EpdState::Uninitialized => {}
-            EpdState::HighlevelState(state) => {
-                let fb: &mut [u8] =
-                    unsafe { std::slice::from_raw_parts_mut(state.front_fb, FB_SIZE) };
-                fb.iter_mut().for_each(|x| *x = color);
-            }
-        }
-    }
-
-    pub fn draw_pixel(&mut self, x: usize, y: usize, color: u8) {
-        match self.epd_state {
-            EpdState::Uninitialized => {}
-            EpdState::HighlevelState(state) => {
-                //FIXME: Check rotation and move pixel around if necessary
-                if x >= EPD_WIDTH {
-                    return;
-                }
-                if y >= EPD_HEIGHT {
-                    return;
-                }
-
-                let fb: &mut [u8] =
-                    unsafe { std::slice::from_raw_parts_mut(state.front_fb, FB_SIZE) };
-
-                let fb_index = y * EPD_WIDTH / 2 + x / 2;
-                let mut fb_byte = fb[fb_index];
-                if x % 2 == 0 {
-                    fb_byte = (fb_byte & 0xF0) | (color >> 4);
-                } else {
-                    fb_byte = (fb_byte & 0x0F) | (color & 0xF0);
-                }
-                fb[fb_index] = fb_byte;
-            }
-        }
-    }
-
-    pub fn draw_hline(&mut self, x: usize, y: usize, length: usize, color: u8) {
-        for i in 0..length {
-            let xx = x + i;
-            self.draw_pixel(xx, y, color);
-        }
-    }
-
-    pub fn draw_vline(&mut self, x: usize, y: usize, length: usize, color: u8) {
-        for i in 0..length {
-            let yy = y + i;
-            self.draw_pixel(x, yy, color);
-        }
-    }
-
-    pub fn fill_rect(&mut self, x: usize, y: usize, w: usize, h: usize, color: u8) {
-        for i in y..y + h {
-            self.draw_hline(x, i, w, color);
-        }
-    }
-
     pub fn clear(&self) -> () {
         match self.epd_state {
             EpdState::Uninitialized => {}
@@ -103,13 +45,14 @@ impl<'a> Epd {
         }
     }
 
-    fn get_fb(&self) -> Option<&'a mut [u8]> {
+    /// Get a mutable slice into the  display framebuffer, if it is initialized.
+    pub fn get_framebuffer(&self) -> Option<&'a mut [u8]> {
         match self.epd_state {
             EpdState::Uninitialized => None,
             EpdState::HighlevelState(state) => {
                 let fb: &mut [u8] =
                     unsafe { std::slice::from_raw_parts_mut(state.front_fb, FB_SIZE) };
-                return Some(fb);
+                Some(fb)
             }
         }
     }
@@ -120,26 +63,24 @@ impl<'a> Epd {
         let x_ptr = &x as *const usize as *mut i32;
         let y_ptr = &y as *const usize as *mut i32;
 
-        if let Some(fb) = self.get_fb() {
+        if let Some(fb) = self.get_framebuffer() {
             unsafe { epd_highlevel::epd_write_default(font, t, x_ptr, y_ptr, fb.as_mut_ptr()) };
         }
     }
 
+    /// Update the screen to display the current contents of the framebuffer.
     pub fn update_screen(&self, temperature: i32) -> () {
         match self.epd_state {
             EpdState::Uninitialized => {}
             EpdState::HighlevelState(mut state) => {
-                const MODE_GC16: epd_highlevel::EpdDrawMode = 0x2;
-
-                println!("poweron");
                 unsafe { epd_highlevel::epd_poweron() };
 
+                const MODE_GC16: epd_highlevel::EpdDrawMode = 0x2;
                 let result: epd_highlevel::EpdDrawError = unsafe {
                     epd_highlevel::epd_hl_update_screen(&mut state, MODE_GC16, temperature)
                 };
                 println!("Draw result: {result:?}");
 
-                println!("poweroff");
                 unsafe { epd_highlevel::epd_poweroff() };
             }
         }

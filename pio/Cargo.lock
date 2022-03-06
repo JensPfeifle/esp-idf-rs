@@ -293,10 +293,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "epd-gfx"
+version = "0.1.0"
+
+[[package]]
 name = "esp-idf-rs"
 version = "0.1.0"
 dependencies = [
  "bindgen 0.58.1",
+ "epd-gfx",
  "esp-idf-sys",
 ]
 

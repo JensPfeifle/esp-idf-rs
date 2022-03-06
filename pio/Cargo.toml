@@ -13,6 +13,7 @@ publish = true
 
 [dependencies]
 esp-idf-sys = "0.30"
+epd-gfx = {path="../epd-gfx/"}
 
 [dev-dependencies]
 
