@@ -4,10 +4,9 @@
 use log::error;
 use pixels::{Error, Pixels, SurfaceTexture};
 use winit::dpi::LogicalSize;
-use winit::event::{Event, VirtualKeyCode};
+use winit::event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
-use winit_input_helper::WinitInputHelper;
 
 const WIDTH: u32 = 960;
 const HEIGHT: u32 = 540;
@@ -16,7 +15,6 @@ const ROTATED: bool = true;
 fn main() -> Result<(), Error> {
     env_logger::init();
     let event_loop = EventLoop::new();
-    let mut input = WinitInputHelper::new();
     let window = {
         let size = if ROTATED {
             LogicalSize::new(HEIGHT as f64, WIDTH as f64)
@@ -42,37 +40,55 @@ fn main() -> Result<(), Error> {
     };
 
     let mut world = World::new();
+    let mut close_requested = false;
 
     event_loop.run(move |event, _, control_flow| {
-        // Draw the current frame
-        if let Event::RedrawRequested(_) = event {
-            world.draw(pixels.get_frame());
-            if pixels
-                .render()
-                .map_err(|e| error!("pixels.render() failed: {}", e))
-                .is_err()
-            {
-                *control_flow = ControlFlow::Exit;
-                return;
+        match event {
+            Event::WindowEvent { event, .. } => match event {
+                WindowEvent::CloseRequested => {
+                    close_requested = true;
+                }
+                WindowEvent::Resized(size) => {
+                    // Resize the window
+                    pixels.resize_surface(size.width, size.height);
+                }
+                WindowEvent::KeyboardInput {
+                    input:
+                        KeyboardInput {
+                            virtual_keycode: Some(virtual_code),
+                            state: ElementState::Pressed,
+                            ..
+                        },
+                    ..
+                } => match virtual_code {
+                    VirtualKeyCode::Escape => {
+                        close_requested = true;
+                    }
+                    _ => (),
+                },
+                _ => (),
+            },
+            Event::MainEventsCleared => {
+                if close_requested {
+                    *control_flow = ControlFlow::Exit;
+                }
             }
-        }
-
-        // Handle input events
-        if input.update(&event) {
-            // Close events
-            if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
-                *control_flow = ControlFlow::Exit;
-                return;
+            Event::RedrawRequested(_) => {
+                world.update();
+                world.draw(pixels.get_frame());
+                if pixels
+                    .render()
+                    .map_err(|e| error!("pixels.render() failed: {}", e))
+                    .is_err()
+                {
+                    *control_flow = ControlFlow::Exit;
+                    return;
+                }
             }
-
-            // Resize the window
-            if let Some(size) = input.window_resized() {
-                pixels.resize_surface(size.width, size.height);
+            Event::RedrawEventsCleared => {
+                *control_flow = ControlFlow::Wait;
             }
-
-            // Update internal state and request a redraw
-            world.update();
-            window.request_redraw();
+            _ => (),
         }
     });
 }
@@ -86,7 +102,6 @@ struct World {
 }
 
 impl World {
-    /// Create a new `World` instance that can draw a moving box.
     fn new() -> Self {
         Self {
             fb: [0xFF; FB_SIZE],
