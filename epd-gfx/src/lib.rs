@@ -1,8 +1,6 @@
-const WIDTH: u32 = 960;
-const HEIGHT: u32 = 540;
-const ROTATED: bool = true;
+pub mod font;
 
-/// Split a framebuffer byte into two pixels of 4 bits each.
+/// Split a framebuffer byte into two pixels of 4 significant bits each.
 /// ```
 /// assert_eq!(epd_gfx::split_byte(0xFF), (0xF, 0xF));
 /// assert_eq!(epd_gfx::split_byte(0x8F), (0x8, 0xF));
@@ -15,28 +13,44 @@ pub fn split_byte(byte: u8) -> (u8, u8) {
     return (left, right);
 }
 
-pub fn draw_pixel(fb: &mut [u8], mut x: u32, mut y: u32, color: u8) {
-    if ROTATED {
-        let tmp = x;
-        x = y;
-        y = tmp;
-        x = WIDTH - x - 1;
-    }
-    if x as u32 >= WIDTH {
-        return;
-    }
-    if y as u32 >= HEIGHT {
-        return;
-    }
+/// Join two sets of 4 bits into one.
+/// ```
+/// assert_eq!(epd_gfx::join_bytes(0xF, 0xF),(0xFF));
+/// assert_eq!(epd_gfx::join_bytes(0x8, 0xF),(0x8F));
+/// assert_eq!(epd_gfx::join_bytes(0xF, 0x0),(0xF0));
+/// assert_eq!(epd_gfx::join_bytes(0x0, 0x0),(0x00));
+/// ```
+pub fn join_bytes(left: u8, right: u8) -> u8 {
+    return ((left & 0x0F) << 4) | (right & 0x0F);
+}
 
-    let fb_index = (y * WIDTH as u32 / 2 + x / 2) as usize;
-    let mut fb_byte = fb[fb_index];
-    if x % 2 == 0 {
-        fb_byte = (fb_byte & 0xF0) | (color >> 4);
-    } else {
-        fb_byte = (fb_byte & 0x0F) | (color & 0xF0);
+/// Transform a point (x,y) to landscape coordinates, if possible.
+/// After transformation, x will be in [0, 960) and y in [0, 540).
+/// Returns None if the point lies outside of the display.
+/// ```
+/// assert_eq!(epd_gfx::to_landscape(50,100), Some((859,50)));
+/// assert_eq!(epd_gfx::to_landscape(0,0), Some((959,0)));
+/// assert_eq!(epd_gfx::to_landscape(539,959), Some((0,539)));
+/// ```
+pub fn to_landscape(x: u32, y: u32) -> Option<(u32, u32)> {
+    if x >= 540 || y >= 960 {
+        return None;
     }
-    fb[fb_index] = fb_byte;
+    return Some((960 - y - 1, x));
+}
+
+pub fn draw_pixel(fb: &mut [u8], x: u32, y: u32, color: u8) {
+    // EPD expects framebuffer for landscape display (WIDTH > HEIGHT)
+    if let Some((x, y)) = to_landscape(x, y) {
+        // x is [0, 960) and y is [0, 540)
+        let fb_index = ((y * 960 + x) / 2) as usize;
+        let (left, right) = split_byte(fb[fb_index]);
+        if x % 2 == 0 {
+            fb[fb_index] = join_bytes(left, color);
+        } else {
+            fb[fb_index] = join_bytes(color, right);
+        }
+    }
 }
 
 pub fn set_all(fb: &mut [u8], color: u8) {

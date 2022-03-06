@@ -28,11 +28,6 @@ impl<'a> Epd {
         const EPD_LUT_4K: u32 = 2;
         unsafe { epd_highlevel::epd_init(EPD_LUT_4K) };
         let state: epd_highlevel::EpdiyHighlevelState = unsafe { epd_highlevel::epd_hl_init() };
-
-        //const EPD_ROT_LANDSCAPE: u32 = 0;
-        const EPD_ROT_PORTRAIT: u32 = 1;
-        unsafe { epd_highlevel::epd_set_rotation(EPD_ROT_PORTRAIT) };
-
         self.epd_state = EpdState::HighlevelState(state);
     }
 
