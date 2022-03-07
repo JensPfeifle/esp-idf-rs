@@ -101,11 +101,12 @@ impl World {
 
     fn update(&mut self) {
         epd_gfx::set_all(&mut self.fb, 0xFF);
-        epd_gfx::fill_rect(&mut self.fb, 50, 75, 400, 250, 0x00);
-        epd_gfx::fill_rect(&mut self.fb, 200, 150, 400, 250, 0x88);
-        epd_gfx::fill_rect(&mut self.fb, 50, 700, 400, 200, 0x00);
-        epd_gfx::fill_rect(&mut self.fb, 75, 701, 400, 200, 0x00);
-        epd_gfx::font::draw_text(&mut self.fb, 0, 0, "Hello from RustType!", 240);
+        epd_gfx::font::draw_text(&mut self.fb, 0, 0, "Hello from RustType!", 32);
+        epd_gfx::fill_rect(&mut self.fb, 50, 50, 400, 250, 0x0);
+        epd_gfx::draw_line(&mut self.fb, 0, 0, 400, 200, 0xF);
+        epd_gfx::draw_line(&mut self.fb, 0, 0, 539, 959, 0x0);
+
+        epd_gfx::fill_circle(&mut self.fb, 250, 250, 30, 0x8);
     }
 
     /// Draw the `World` state to the frame buffer.
@@ -118,6 +119,7 @@ impl World {
 
             let (fb_x, fb_y) = epd_gfx::to_landscape(screen_x, screen_y).unwrap();
             let fb_index = ((fb_y * 960 + fb_x) / 2) as usize;
+            let (left, right) = epd_gfx::split_byte(self.fb[fb_index]);
             let (left, right) = epd_gfx::split_byte(self.fb[fb_index]);
 
             let shade = {

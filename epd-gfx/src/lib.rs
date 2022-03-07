@@ -1,4 +1,5 @@
 pub mod font;
+pub mod icons;
 
 /// Split a framebuffer byte into two pixels of 4 significant bits each.
 /// ```
@@ -64,6 +65,86 @@ pub fn draw_hline(fb: &mut [u8], x: u32, y: u32, length: u32, color: u8) {
     }
 }
 
+fn draw_line_steep(fb: &mut [u8], x0: i32, y0: i32, x1: i32, y1: i32, color: u8) {
+    let mut dx = x1 - x0;
+    let dy = y1 - y0;
+    let xi: i32;
+
+    if dx < 0 {
+        xi = -1;
+        dx = -dx;
+    } else {
+        xi = 1;
+    };
+
+    let mut err = 2 * dx - dy;
+    let mut x = x0;
+
+    for y in y0..y1 {
+        draw_pixel(fb, x as u32, y as u32, color);
+        if err > 0 {
+            x = x + xi;
+            err = err + (2 * (dx - dy));
+        } else {
+            err = err + 2 * dx;
+        }
+    }
+}
+
+fn draw_line_shallow(fb: &mut [u8], x0: i32, y0: i32, x1: i32, y1: i32, color: u8) {
+    let dx = x1 - x0;
+    let mut dy = y1 - y0;
+    let yi: i32;
+
+    if dy < 0 {
+        yi = -1;
+        dy = -dy;
+    } else {
+        yi = 1;
+    };
+
+    let mut err = 2 * dy - dx;
+    let mut y = y0;
+
+    for x in x0..x1 {
+        draw_pixel(fb, x as u32, y as u32, color);
+        if err > 0 {
+            y = y + yi;
+            err = err + (2 * (dy - dx));
+        } else {
+            err = err + 2 * dy;
+        }
+    }
+}
+
+pub fn draw_line(fb: &mut [u8], x0: u32, y0: u32, x1: u32, y1: u32, color: u8) {
+    //https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
+    let mut x0 = x0 as i32;
+    let mut y0 = y0 as i32;
+    let mut x1 = x1 as i32;
+    let mut y1 = y1 as i32;
+
+    if y1 == y0 {
+        draw_hline(fb, x0 as u32, y0 as u32, (x1 - x0) as u32, color);
+    } else if x1 == x0 {
+        draw_vline(fb, x0 as u32, y0 as u32, (y1 - y0) as u32, color);
+    } else {
+        if (y1 - y0).abs() < (x1 - x0).abs() {
+            if x0 > x1 {
+                std::mem::swap(&mut x0, &mut x1);
+                std::mem::swap(&mut y0, &mut y1);
+            }
+            draw_line_shallow(fb, x0, y0, x1, y1, color);
+        } else {
+            if y0 > y1 {
+                std::mem::swap(&mut x0, &mut x1);
+                std::mem::swap(&mut y0, &mut y1);
+            }
+            draw_line_steep(fb, x0, y0, x1, y1, color);
+        }
+    }
+}
+
 pub fn draw_vline(fb: &mut [u8], x: u32, y: u32, length: u32, color: u8) {
     for i in 0..length {
         let yy = y + i;
@@ -74,5 +155,50 @@ pub fn draw_vline(fb: &mut [u8], x: u32, y: u32, length: u32, color: u8) {
 pub fn fill_rect(fb: &mut [u8], x: u32, y: u32, w: u32, h: u32, color: u8) {
     for i in y..y + h {
         draw_hline(fb, x, i, w, color);
+    }
+}
+
+pub fn fill_circle(fb: &mut [u8], u: u32, v: u32, r: u32, color: u8) {
+    //https://de.wikipedia.org/wiki/Rasterung_von_Kreisen#Methode_von_Horn
+    let mut x: i32 = i32::try_from(r).unwrap_or(i32::MAX);
+    let mut y: i32 = 0;
+    let mut d: i32 = 0; // squared distance to cirle
+
+    while x >= y {
+        // draw pixels
+        let (screen_x, screen_y) = (u as i32 + x, v as i32 + y);
+        draw_pixel(fb, screen_x as u32, screen_y as u32, color);
+
+        let (screen_x, screen_y) = (u as i32 - x, v as i32 - y);
+        draw_pixel(fb, screen_x as u32, screen_y as u32, color);
+
+        let (screen_x, screen_y) = (u as i32 + x, v as i32 - y);
+        draw_pixel(fb, screen_x as u32, screen_y as u32, color);
+
+        let (screen_x, screen_y) = (u as i32 - x, v as i32 + y);
+        draw_pixel(fb, screen_x as u32, screen_y as u32, color);
+
+        let (screen_x, screen_y) = (u as i32 - y, v as i32 + x);
+        draw_pixel(fb, screen_x as u32, screen_y as u32, color);
+
+        let (screen_x, screen_y) = (u as i32 + y, v as i32 - x);
+        draw_pixel(fb, screen_x as u32, screen_y as u32, color);
+
+        let (screen_x, screen_y) = (u as i32 + y, v as i32 + x);
+        draw_pixel(fb, screen_x as u32, screen_y as u32, color);
+
+        let (screen_x, screen_y) = (u as i32 - y, v as i32 - x);
+        draw_pixel(fb, screen_x as u32, screen_y as u32, color);
+
+        // increment y and update d accordingly
+        y = y + 1;
+        d = d + 2 * y + 1;
+
+        if d >= 0 {
+            // if d is too large
+            // increment x and update d accordingly
+            x = x - 1;
+            d = d - 2 * x + 1;
+        }
     }
 }
