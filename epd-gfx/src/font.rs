@@ -26,8 +26,8 @@ pub fn draw_text(fb: &mut [u8], x: u32, y: u32, text: &str, size: u32) {
                 draw_pixel(
                     fb,
                     // Offset the position by the glyph bounding box
-                    x_pos + x + bounding_box.min.x as u32,
-                    y_pos + y + bounding_box.min.y as u32,
+                    (x_pos + x + bounding_box.min.x as u32) as i32,
+                    (y_pos + y + bounding_box.min.y as u32) as i32,
                     // Turn the coverage into a grayscale value
                     ((1.0 - v) * 15.0) as u8,
                 )

@@ -101,12 +101,45 @@ impl World {
 
     fn update(&mut self) {
         epd_gfx::set_all(&mut self.fb, 0xFF);
-        epd_gfx::font::draw_text(&mut self.fb, 0, 0, "Hello from RustType!", 32);
-        epd_gfx::fill_rect(&mut self.fb, 50, 50, 400, 250, 0x0);
-        epd_gfx::draw_line(&mut self.fb, 0, 0, 400, 200, 0xF);
-        epd_gfx::draw_line(&mut self.fb, 0, 0, 539, 959, 0x0);
+        self.icons();
+    }
 
-        epd_gfx::fill_circle(&mut self.fb, 250, 250, 30, 0x8);
+    fn icons(&mut self) {
+        epd_gfx::icons::sunny(
+            &mut self.fb,
+            100,
+            100,
+            epd_gfx::icons::IconSize::LARGE,
+            "02n",
+        );
+        epd_gfx::icons::mostly_sunny(
+            &mut self.fb,
+            400,
+            100,
+            epd_gfx::icons::IconSize::LARGE,
+            "02n",
+        );
+        epd_gfx::icons::mostly_cloudy(
+            &mut self.fb,
+            400,
+            300,
+            epd_gfx::icons::IconSize::LARGE,
+            "02n",
+        );
+        epd_gfx::icons::cloudy(
+            &mut self.fb,
+            100,
+            300,
+            epd_gfx::icons::IconSize::LARGE,
+            "02n",
+        );
+        epd_gfx::icons::rain(
+            &mut self.fb,
+            100,
+            500,
+            epd_gfx::icons::IconSize::LARGE,
+            "02d",
+        );
     }
 
     /// Draw the `World` state to the frame buffer.
@@ -114,12 +147,11 @@ impl World {
     /// Assumes the default texture format: `wgpu::TextureFormat::Rgba8UnormSrgb`
     fn draw(&self, frame: &mut [u8]) {
         for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
-            let screen_x = (i % 540 as usize) as u32;
-            let screen_y = (i / 540 as usize) as u32;
+            let screen_x = (i % 540 as usize) as i32;
+            let screen_y = (i / 540 as usize) as i32;
 
             let (fb_x, fb_y) = epd_gfx::to_landscape(screen_x, screen_y).unwrap();
             let fb_index = ((fb_y * 960 + fb_x) / 2) as usize;
-            let (left, right) = epd_gfx::split_byte(self.fb[fb_index]);
             let (left, right) = epd_gfx::split_byte(self.fb[fb_index]);
 
             let shade = {
