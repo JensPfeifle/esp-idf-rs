@@ -315,7 +315,7 @@ pub fn addfog(fb: &mut [u8], x: i32, mut y: i32, scale: f32, mut linesize: u32, 
     }
 }
 
-pub fn sunny(fb: &mut [u8], x: i32, mut y: i32, size: IconSize, name: &str) {
+pub fn sunny(fb: &mut [u8], x: i32, mut y: i32, size: IconSize) {
     let scale: f32 = match size {
         IconSize::SMALL => SMALL as f32,
         IconSize::LARGE => LARGE as f32,
@@ -323,13 +323,10 @@ pub fn sunny(fb: &mut [u8], x: i32, mut y: i32, size: IconSize, name: &str) {
     if size == IconSize::SMALL {
         y = y - 3; // Shift up small sun icon
     }
-    if name.ends_with("n") {
-        addmoon(fb, x, y + 3, scale, size);
-    }
     addsun(fb, x, y, scale * 1.6, size);
 }
 
-pub fn mostly_sunny(fb: &mut [u8], x: i32, y: i32, size: IconSize, name: &str) {
+pub fn mostly_sunny(fb: &mut [u8], x: i32, y: i32, size: IconSize) {
     let mut linesize = 3;
     let mut offset = 5;
 
@@ -345,9 +342,6 @@ pub fn mostly_sunny(fb: &mut [u8], x: i32, y: i32, size: IconSize, name: &str) {
             linesize = 1;
         }
     }
-    if name.ends_with("n") {
-        addmoon(fb, x, y + offset, scale, size);
-    }
     addcloud(fb, x, y + offset, scale, linesize);
     addsun(
         fb,
@@ -358,7 +352,7 @@ pub fn mostly_sunny(fb: &mut [u8], x: i32, y: i32, size: IconSize, name: &str) {
     );
 }
 
-pub fn mostly_cloudy(fb: &mut [u8], x: i32, y: i32, size: IconSize, name: &str) {
+pub fn mostly_cloudy(fb: &mut [u8], x: i32, y: i32, size: IconSize) {
     let scale: f32;
     let linesize;
     match size {
@@ -372,9 +366,6 @@ pub fn mostly_cloudy(fb: &mut [u8], x: i32, y: i32, size: IconSize, name: &str) 
         }
     }
 
-    if name.ends_with("n") {
-        addmoon(fb, x, y, scale, size);
-    }
     addcloud(fb, x, y, scale, linesize);
     addsun(
         fb,
@@ -386,7 +377,7 @@ pub fn mostly_cloudy(fb: &mut [u8], x: i32, y: i32, size: IconSize, name: &str) 
     addcloud(fb, x, y, scale, linesize);
 }
 
-pub fn cloudy(fb: &mut [u8], x: i32, y: i32, size: IconSize, name: &str) {
+pub fn cloudy(fb: &mut [u8], x: i32, y: i32, size: IconSize) {
     let scale: f32;
     let linesize;
     let offset;
@@ -403,10 +394,6 @@ pub fn cloudy(fb: &mut [u8], x: i32, y: i32, size: IconSize, name: &str) {
         }
     }
 
-    if name.ends_with("n") {
-        addmoon(fb, x, y + offset, scale, size);
-    }
-
     addcloud(fb, x, y, scale, linesize); // Main cloud
     if size == IconSize::LARGE {
         addcloud(fb, x + 30, y, 8.0, linesize); // Cloud top right
@@ -414,7 +401,7 @@ pub fn cloudy(fb: &mut [u8], x: i32, y: i32, size: IconSize, name: &str) {
     }
 }
 
-pub fn rain(fb: &mut [u8], x: i32, y: i32, size: IconSize, name: &str) {
+pub fn rain(fb: &mut [u8], x: i32, y: i32, size: IconSize) {
     let scale;
     let linesize;
     match size {
@@ -427,14 +414,11 @@ pub fn rain(fb: &mut [u8], x: i32, y: i32, size: IconSize, name: &str) {
             linesize = 3;
         }
     }
-    if name.ends_with("n") {
-        addmoon(fb, x, y, scale, size);
-    }
     addcloud(fb, x, y, scale, linesize);
     addrain(fb, x, y, scale, size);
 }
 
-pub fn expect_rain(fb: &mut [u8], x: i32, y: i32, size: IconSize, name: &str) {
+pub fn expect_rain(fb: &mut [u8], x: i32, y: i32, size: IconSize) {
     let scale: f32;
     let linesize;
     match size {
@@ -446,9 +430,6 @@ pub fn expect_rain(fb: &mut [u8], x: i32, y: i32, size: IconSize, name: &str) {
             scale = LARGE as f32;
             linesize = 3.0;
         }
-    }
-    if name.ends_with("n") {
-        addmoon(fb, x, y, scale, size);
     }
     addsun(
         fb,
@@ -461,11 +442,11 @@ pub fn expect_rain(fb: &mut [u8], x: i32, y: i32, size: IconSize, name: &str) {
     addrain(fb, x, y, scale, size);
 }
 
-pub fn chance_rain(fb: &mut [u8], x: i32, y: i32, size: IconSize, name: &str) {
-    expect_rain(fb, x, y, size, name);
+pub fn chance_rain(fb: &mut [u8], x: i32, y: i32, size: IconSize) {
+    expect_rain(fb, x, y, size);
 }
 
-pub fn tstorms(fb: &mut [u8], x: i32, y: i32, size: IconSize, name: &str) {
+pub fn tstorms(fb: &mut [u8], x: i32, y: i32, size: IconSize) {
     let scale: f32;
     let linesize;
     match size {
@@ -477,16 +458,13 @@ pub fn tstorms(fb: &mut [u8], x: i32, y: i32, size: IconSize, name: &str) {
             scale = LARGE as f32;
             linesize = 3.0;
         }
-    }
-    if name.ends_with("n") {
-        addmoon(fb, x, y, scale, size);
     }
 
     addcloud(fb, x, y, scale, linesize as u32);
     addtstorm(fb, x, y, scale);
 }
 
-pub fn snow(fb: &mut [u8], x: i32, y: i32, size: IconSize, name: &str) {
+pub fn snow(fb: &mut [u8], x: i32, y: i32, size: IconSize) {
     let scale: f32;
     let linesize;
     match size {
@@ -498,15 +476,12 @@ pub fn snow(fb: &mut [u8], x: i32, y: i32, size: IconSize, name: &str) {
             scale = LARGE as f32;
             linesize = 3.0;
         }
-    }
-    if name.ends_with("n") {
-        addmoon(fb, x, y, scale, size);
     }
     addcloud(fb, x, y, scale, linesize as u32);
     addsnow(fb, x, y, scale, size);
 }
 
-pub fn fog(fb: &mut [u8], x: i32, y: i32, size: IconSize, name: &str) {
+pub fn fog(fb: &mut [u8], x: i32, y: i32, size: IconSize) {
     let scale: f32;
     let linesize;
     match size {
@@ -518,15 +493,12 @@ pub fn fog(fb: &mut [u8], x: i32, y: i32, size: IconSize, name: &str) {
             scale = LARGE as f32;
             linesize = 3.0;
         }
-    }
-    if name.ends_with("n") {
-        addmoon(fb, x, y, scale, size);
     }
     addcloud(fb, x, y, scale, linesize as u32);
     addfog(fb, x, y - 5, scale, linesize as u32, size);
 }
 
-pub fn haze(fb: &mut [u8], x: i32, y: i32, size: IconSize, name: &str) {
+pub fn haze(fb: &mut [u8], x: i32, y: i32, size: IconSize) {
     let scale: f32;
     let linesize;
     match size {
@@ -538,9 +510,6 @@ pub fn haze(fb: &mut [u8], x: i32, y: i32, size: IconSize, name: &str) {
             scale = LARGE as f32;
             linesize = 3.0;
         }
-    }
-    if name.ends_with("n") {
-        addmoon(fb, x, y, scale, size);
     }
     addsun(fb, x, y - 5, scale * 1.4, size);
     addfog(fb, x, y - 5, scale * 1.4, linesize as u32, size);
