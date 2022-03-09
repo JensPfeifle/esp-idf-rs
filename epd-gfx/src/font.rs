@@ -1,4 +1,4 @@
-use crate::draw_pixel;
+use crate::drawing::draw_pixel;
 use rusttype::{point, Font, Scale};
 
 pub fn draw_text(fb: &mut [u8], x: u32, y: u32, text: &str, size: u32) {
