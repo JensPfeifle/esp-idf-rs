@@ -2,6 +2,8 @@ pub mod drawing;
 pub mod font;
 pub mod icons;
 
+pub use drawing::{set_all, split_byte, to_landscape};
+
 #[derive(Clone, Copy, Debug)]
 pub struct Point {
     x: i32,

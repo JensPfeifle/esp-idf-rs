@@ -47,6 +47,9 @@ pub fn draw_pixel(fb: &mut [u8], x: i32, y: i32, color: u8) {
             .try_into()
             .expect("Invalid framebuffer index!");
         let (left, right) = split_byte(fb[fb_index]);
+        // Furthermore, the EPD framebuffer has a swapped order within the bytes. Example: Assuming
+        // the first two bytes of the framebuffer are 0xABCD, the corresponding row of four pixels
+        // is: 0xB 0xA 0xD 0xC
         if x % 2 == 0 {
             fb[fb_index] = join_bytes(left, color);
         } else {
@@ -56,6 +59,7 @@ pub fn draw_pixel(fb: &mut [u8], x: i32, y: i32, color: u8) {
 }
 
 pub fn set_all(fb: &mut [u8], color: u8) {
+    // FIXME: passing '0xF0' will set half black, half white.
     fb.iter_mut().for_each(|x| *x = color);
 }
 

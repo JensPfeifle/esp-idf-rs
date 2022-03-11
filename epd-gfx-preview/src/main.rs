@@ -100,46 +100,38 @@ impl World {
     }
 
     fn update(&mut self) {
-        epd_gfx::set_all(&mut self.fb, 0xFF);
         self.icons();
     }
 
     fn icons(&mut self) {
-        epd_gfx::icons::sunny(
-            &mut self.fb,
-            100,
-            100,
-            epd_gfx::icons::IconSize::LARGE,
-            "02n",
-        );
-        epd_gfx::icons::mostly_sunny(
-            &mut self.fb,
-            400,
-            100,
-            epd_gfx::icons::IconSize::LARGE,
-            "02n",
-        );
-        epd_gfx::icons::mostly_cloudy(
-            &mut self.fb,
-            400,
-            300,
-            epd_gfx::icons::IconSize::LARGE,
-            "02n",
-        );
-        epd_gfx::icons::cloudy(
-            &mut self.fb,
-            100,
-            300,
-            epd_gfx::icons::IconSize::LARGE,
-            "02n",
-        );
-        epd_gfx::icons::rain(
-            &mut self.fb,
-            100,
-            500,
-            epd_gfx::icons::IconSize::LARGE,
-            "02d",
-        );
+        let x1 = 120;
+        let x2 = 400;
+
+        let dy = 180;
+        let mut y = 100;
+
+        //epd_gfx::drawing::draw_vline(&mut self.fb, x1, 0, 960, 0x8);
+        //epd_gfx::drawing::draw_vline(&mut self.fb, x2, 0, 960, 0x8);
+
+        //epd_gfx::drawing::draw_hline(&mut self.fb, 0, y, 540, 0x8);
+        epd_gfx::icons::sunny(&mut self.fb, x1, y, epd_gfx::icons::IconSize::LARGE);
+        epd_gfx::icons::mostly_sunny(&mut self.fb, x2, y, epd_gfx::icons::IconSize::LARGE);
+        y += dy;
+        //epd_gfx::drawing::draw_hline(&mut self.fb, 0, y, 540, 0x8);
+        epd_gfx::icons::mostly_cloudy(&mut self.fb, x1, y, epd_gfx::icons::IconSize::LARGE);
+        epd_gfx::icons::cloudy(&mut self.fb, x2, y, epd_gfx::icons::IconSize::LARGE);
+        y += dy;
+        //epd_gfx::drawing::draw_hline(&mut self.fb, 0, y, 540, 0x8);
+        epd_gfx::icons::rain(&mut self.fb, x1, y, epd_gfx::icons::IconSize::LARGE);
+        epd_gfx::icons::expect_rain(&mut self.fb, x2, y, epd_gfx::icons::IconSize::LARGE);
+        y += dy;
+        //epd_gfx::drawing::draw_hline(&mut self.fb, 0, y, 540, 0x8);
+        epd_gfx::icons::tstorms(&mut self.fb, x2, y, epd_gfx::icons::IconSize::LARGE);
+        epd_gfx::icons::snow(&mut self.fb, x1, y, epd_gfx::icons::IconSize::LARGE);
+        y += dy;
+        //epd_gfx::drawing::draw_hline(&mut self.fb, 0, y, 540, 0x8);
+        epd_gfx::icons::fog(&mut self.fb, x1, y, epd_gfx::icons::IconSize::LARGE);
+        epd_gfx::icons::haze(&mut self.fb, x2, y, epd_gfx::icons::IconSize::LARGE);
     }
 
     /// Draw the `World` state to the frame buffer.
