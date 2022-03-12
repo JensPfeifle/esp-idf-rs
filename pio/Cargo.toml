@@ -12,8 +12,12 @@ autobenches = true
 publish = true
 
 [dependencies]
-esp-idf-sys = "0.30"
+anyhow = {version = "1", features = ["backtrace"]}
+embedded-svc = "0.17.2"
 epd-gfx = {path="../epd-gfx/"}
+esp-idf-svc = "0.37.2"
+esp-idf-sys = "0.30"
+log = { version = "0.4", default-features = false }
 
 [dev-dependencies]
 
@@ -24,7 +28,10 @@ bindgen = "0.58.1"
 
 [features]
 
-[patch]
+[patch.crates-io]
+# https://github.com/esp-rs/esp-idf-hal/issues/47
+embuild = { path = './embuild' }
+
 
 [lib]
 path = "src/lib.rs"

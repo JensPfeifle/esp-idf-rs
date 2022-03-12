@@ -1,10 +1,16 @@
 use epd_gfx;
 
+use esp_idf_svc::netif::*;
+use esp_idf_svc::nvs::*;
+use esp_idf_svc::sysloop::*;
 use esp_idf_sys::{vTaskDelay, TickType_t};
+
+use std::sync::Arc;
 
 pub mod epd;
 pub mod epd_highlevel;
 pub mod firasans;
+pub mod wifi;
 
 unsafe fn delay() {
     //https://github.com/espressif/esp-idf/issues/1646#issuecomment-913190625
@@ -47,6 +53,17 @@ fn icons(fb: &mut [u8]) {
 #[no_mangle]
 extern "C" fn app_main() {
     println!("initializing...");
+
+    let netif_stack = Arc::new(EspNetifStack::new().unwrap());
+    let sys_loop_stack = Arc::new(EspSysLoopStack::new().unwrap());
+    let default_nvs = Arc::new(EspDefaultNvs::new().unwrap());
+    let mut wifi = wifi::wifi(
+        netif_stack.clone(),
+        sys_loop_stack.clone(),
+        default_nvs.clone(),
+    )
+    .unwrap();
+
     let mut epd = epd::Epd::new();
     epd.init();
     epd.clear();
