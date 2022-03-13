@@ -3,21 +3,16 @@ name = "esp-idf-rs"
 edition = "2021"
 version = "0.1.0"
 authors = []
-keywords = []
-categories = []
-autobins = true
-autoexamples = true
-autotests = true
-autobenches = true
-publish = true
 
 [dependencies]
-anyhow = {version = "1", features = ["backtrace"]}
+anyhow = {version = "1"}
+brtsky = {git= "https://github.com/jenspfeifle/brtsky", branch="espidf"}
 embedded-svc = "0.17.2"
 epd-gfx = {path="../epd-gfx/"}
-esp-idf-svc = "0.37.2"
+esp-idf-svc ={version=  "0.37.2", features = ["experimental", "alloc"]}
 esp-idf-sys = "0.30"
 log = { version = "0.4", default-features = false }
+serde_json="1"
 
 [dev-dependencies]
 

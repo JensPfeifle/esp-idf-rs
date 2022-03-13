@@ -1,12 +1,17 @@
+use anyhow::Result;
+use brtsky;
+use embedded_svc::http::client::Response;
+use embedded_svc::http::client::*;
+use embedded_svc::http::Status;
+use embedded_svc::io::Read;
 use epd_gfx;
-
 use esp_idf_svc::netif::*;
 use esp_idf_svc::nvs::*;
 use esp_idf_svc::sysloop::*;
 use esp_idf_sys::{vTaskDelay, TickType_t};
-
+use serde_json;
+use std::str;
 use std::sync::Arc;
-
 pub mod epd;
 pub mod epd_highlevel;
 pub mod firasans;
@@ -50,20 +55,38 @@ fn icons(fb: &mut [u8]) {
     epd_gfx::icons::haze(fb, x2, y, epd_gfx::icons::IconSize::LARGE);
 }
 
-#[no_mangle]
-extern "C" fn app_main() {
+fn main() -> Result<()> {
+    fetch()?;
+    draw_screen()?;
+    Ok(())
+}
+
+fn fetch() -> Result<()> {
     println!("initializing...");
 
-    let netif_stack = Arc::new(EspNetifStack::new().unwrap());
-    let sys_loop_stack = Arc::new(EspSysLoopStack::new().unwrap());
-    let default_nvs = Arc::new(EspDefaultNvs::new().unwrap());
+    let netif_stack = Arc::new(EspNetifStack::new()?);
+    let sys_loop_stack = Arc::new(EspSysLoopStack::new()?);
+    let default_nvs = Arc::new(EspDefaultNvs::new()?);
     let mut wifi = wifi::wifi(
         netif_stack.clone(),
         sys_loop_stack.clone(),
         default_nvs.clone(),
-    )
-    .unwrap();
+    )?;
 
+    let mut client = wifi::WeatherApi::new()?;
+    let response = client.get()?;
+    let code = response.status();
+    println!("status code: {code}");
+
+    let bytes: Result<Vec<_>, _> =
+        embedded_svc::io::Bytes::<_, 64>::new(response.reader()).collect();
+    let body = bytes?;
+    let data: brtsky::Response = serde_json::from_slice(&body).unwrap();
+    println!("data: {data:?}");
+    Ok(())
+}
+
+fn draw_screen() -> Result<()> {
     let mut epd = epd::Epd::new();
     epd.init();
     epd.clear();
@@ -75,8 +98,20 @@ extern "C" fn app_main() {
     epd_gfx::font::draw_text(&mut fb, 0, 0, "Hello from RustType!", 32);
 
     epd.update_screen(25i32);
+    Ok(())
+}
 
-    println!("looping...");
+#[no_mangle]
+extern "C" fn app_main() {
+    match main() {
+        Ok(_) => {}
+        Err(err) => {
+            println!("Unhandled error in main:");
+            println!("{err:?}");
+        }
+    }
+
+    println!("looping forever...");
     loop {
         unsafe { delay() };
     }

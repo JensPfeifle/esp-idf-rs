@@ -1,14 +1,15 @@
 use anyhow::{bail, Result};
+use embedded_svc::http::client::*;
+use embedded_svc::http::*;
 use embedded_svc::ipv4;
 use embedded_svc::ping::Ping;
 use embedded_svc::wifi::*;
+use esp_idf_svc::http::client::{EspHttpClient, EspHttpResponse};
 use esp_idf_svc::netif::*;
 use esp_idf_svc::nvs::*;
 use esp_idf_svc::ping;
 use esp_idf_svc::sysloop::*;
 use esp_idf_svc::wifi::*;
-use embedded_svc::http::*;
-use esp_idf_svc::http;
 use log::*;
 
 use std::sync::Arc;
@@ -79,6 +80,39 @@ pub fn wifi(
     Ok(wifi)
 }
 
+pub struct WeatherApi {
+    client: Box<EspHttpClient>,
+    url: String,
+}
+
+impl WeatherApi {
+    pub fn new() -> Result<Self> {
+        let client = EspHttpClient::new_default()?;
+        Ok(Self {
+            client: Box::new(client),
+            url: "https://api.brightsky.dev/weather?lat=52&lon=7.6&date=2020-04-21".to_owned(),
+        })
+    }
+
+    pub fn get(&mut self) -> Result<EspHttpResponse> {
+        let req = self.client.get(self.url.clone())?;
+        let resp = req.submit()?;
+        Ok(resp)
+    }
+    pub fn read(&mut self) -> Result<()> {
+        let req = self.client.get(String::from("http://google.com"))?;
+        let resp = req.submit()?;
+        let bytes: Result<Vec<_>, _> = embedded_svc::io::Bytes::<_, 64>::new(resp.reader())
+            .take(3000)
+            .collect();
+
+        let bytes = bytes?;
+
+        //let conf: wifi::Configuration = serde_json::from_slice(&bytes)?;
+
+        Ok(())
+    }
+}
 fn ping(ip_settings: &ipv4::ClientSettings) -> Result<()> {
     info!("About to do some pings for {:?}", ip_settings);
 
