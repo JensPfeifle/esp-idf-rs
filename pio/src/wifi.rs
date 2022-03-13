@@ -7,6 +7,8 @@ use esp_idf_svc::nvs::*;
 use esp_idf_svc::ping;
 use esp_idf_svc::sysloop::*;
 use esp_idf_svc::wifi::*;
+use embedded_svc::http::*;
+use esp_idf_svc::http;
 use log::*;
 
 use std::sync::Arc;
