@@ -1,12 +1,22 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
+use anyhow::Result;
+use embedded_graphics::{
+    pixelcolor::Gray4,
+    prelude::*,
+    primitives::{Circle, PrimitiveStyle, PrimitiveStyleBuilder},
+};
 use log::error;
 use pixels::{Error, Pixels, SurfaceTexture};
+use preview::PreviewDisplay;
 use winit::dpi::LogicalSize;
 use winit::event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
+
+pub mod preview;
+pub mod weather;
 
 const WINDOW_WIDTH: u32 = 540;
 const WINDOW_HEIGHT: u32 = 960;
@@ -31,6 +41,7 @@ fn main() -> Result<(), Error> {
     };
 
     let mut world = World::new();
+
     let mut close_requested = false;
 
     event_loop.run(move |event, _, control_flow| {
@@ -84,55 +95,65 @@ fn main() -> Result<(), Error> {
     });
 }
 
-const FB_SIZE: usize = WINDOW_WIDTH as usize * WINDOW_HEIGHT as usize / 2;
-
 struct World {
-    //  4 bits per pixel, 16 grayscale shades
-    // `0xF` (white) through `0x8` (median gray) til `0x0`
-    fb: [u8; FB_SIZE],
+    display: PreviewDisplay,
 }
 
 impl World {
     fn new() -> Self {
         Self {
-            fb: [0xFF; FB_SIZE],
+            display: PreviewDisplay::new(),
         }
     }
 
-    fn update(&mut self) {
-        self.icons();
+    fn update(&mut self) -> Result<()> {
+        Circle::new(Point::new(10, 50), 30)
+            .into_styled(PrimitiveStyle::with_stroke(Gray4::WHITE, 1))
+            .draw(&mut self.display)?;
+
+        let style = PrimitiveStyleBuilder::new()
+            .stroke_color(Gray4::new(0x4))
+            .stroke_width(3)
+            .fill_color(Gray4::new(0x8))
+            .build();
+
+        Circle::new(Point::new(50, 20), 10)
+            .into_styled(style)
+            .draw(&mut self.display)?;
+
+        //self.icons();
+        Ok(())
     }
+    //fn icons(&mut self) {
+    //    let x1 = 120;
+    //    let x2 = 400;
 
-    fn icons(&mut self) {
-        let x1 = 120;
-        let x2 = 400;
+    //    let dy = 180;
+    //    let mut y = 100;
 
-        let dy = 180;
-        let mut y = 100;
+    //    //epd_gfx::drawing::draw_vline(&mut self.fb, x1, 0, 960, 0x8);
+    //    //epd_gfx::drawing::draw_vline(&mut self.fb, x2, 0, 960, 0x8);
 
-        //epd_gfx::drawing::draw_vline(&mut self.fb, x1, 0, 960, 0x8);
-        //epd_gfx::drawing::draw_vline(&mut self.fb, x2, 0, 960, 0x8);
-
-        //epd_gfx::drawing::draw_hline(&mut self.fb, 0, y, 540, 0x8);
-        epd_gfx::icons::sunny(&mut self.fb, x1, y, epd_gfx::icons::IconSize::LARGE);
-        epd_gfx::icons::mostly_sunny(&mut self.fb, x2, y, epd_gfx::icons::IconSize::LARGE);
-        y += dy;
-        //epd_gfx::drawing::draw_hline(&mut self.fb, 0, y, 540, 0x8);
-        epd_gfx::icons::mostly_cloudy(&mut self.fb, x1, y, epd_gfx::icons::IconSize::LARGE);
-        epd_gfx::icons::cloudy(&mut self.fb, x2, y, epd_gfx::icons::IconSize::LARGE);
-        y += dy;
-        //epd_gfx::drawing::draw_hline(&mut self.fb, 0, y, 540, 0x8);
-        epd_gfx::icons::rain(&mut self.fb, x1, y, epd_gfx::icons::IconSize::LARGE);
-        epd_gfx::icons::expect_rain(&mut self.fb, x2, y, epd_gfx::icons::IconSize::LARGE);
-        y += dy;
-        //epd_gfx::drawing::draw_hline(&mut self.fb, 0, y, 540, 0x8);
-        epd_gfx::icons::tstorms(&mut self.fb, x2, y, epd_gfx::icons::IconSize::LARGE);
-        epd_gfx::icons::snow(&mut self.fb, x1, y, epd_gfx::icons::IconSize::LARGE);
-        y += dy;
-        //epd_gfx::drawing::draw_hline(&mut self.fb, 0, y, 540, 0x8);
-        epd_gfx::icons::fog(&mut self.fb, x1, y, epd_gfx::icons::IconSize::LARGE);
-        epd_gfx::icons::haze(&mut self.fb, x2, y, epd_gfx::icons::IconSize::LARGE);
-    }
+    //    //epd_gfx::drawing::draw_hline(&mut self.fb, 0, y, 540, 0x8);
+    //    epd_gfx::icons::sunny(&mut self.fb, x1, y, epd_gfx::icons::IconSize::LARGE);
+    //    epd_gfx::icons::mostly_sunny(&mut self.fb, x2, y, epd_gfx::icons::IconSize::LARGE);
+    //    y += dy;
+    //    //epd_gfx::drawing::draw_hline(&mut self.fb, 0, y, 540, 0x8);
+    //    epd_gfx::icons::mostly_cloudy(&mut self.fb, x1, y, epd_gfx::icons::IconSize::LARGE);
+    //    epd_gfx::icons::cloudy(&mut self.fb, x2, y, epd_gfx::icons::IconSize::LARGE);
+    //    y += dy;
+    //    //epd_gfx::drawing::draw_hline(&mut self.fb, 0, y, 540, 0x8);
+    //    epd_gfx::icons::rain(&mut self.fb, x1, y, epd_gfx::icons::IconSize::LARGE);
+    //    epd_gfx::icons::expect_rain(&mut self.fb, x2, y, epd_gfx::icons::IconSize::LARGE);
+    //    y += dy;
+    //    //epd_gfx::drawing::draw_hline(&mut self.fb, 0, y, 540, 0x8);
+    //    epd_gfx::icons::tstorms(&mut self.fb, x2, y, epd_gfx::icons::IconSize::LARGE);
+    //    epd_gfx::icons::snow(&mut self.fb, x1, y, epd_gfx::icons::IconSize::LARGE);
+    //    y += dy;
+    //    //epd_gfx::drawing::draw_hline(&mut self.fb, 0, y, 540, 0x8);
+    //    epd_gfx::icons::fog(&mut self.fb, x1, y, epd_gfx::icons::IconSize::LARGE);
+    //    epd_gfx::icons::haze(&mut self.fb, x2, y, epd_gfx::icons::IconSize::LARGE);
+    //}
 
     /// Draw the `World` state to the frame buffer.
     ///
@@ -142,21 +163,14 @@ impl World {
             let screen_x = (i % 540 as usize) as i32;
             let screen_y = (i / 540 as usize) as i32;
 
-            let (fb_x, fb_y) = epd_gfx::to_landscape(screen_x, screen_y).unwrap();
-            let fb_index = ((fb_y * 960 + fb_x) / 2) as usize;
-            let (left, right) = epd_gfx::split_byte(self.fb[fb_index]);
-
-            let shade = {
-                if fb_x % 2 == 0 {
-                    right
-                } else {
-                    left
+            if let Some(shade) = self.display.get_pixel(screen_x, screen_y) {
+                // Scale range from 4 bits to 1 byte (0-255).
+                if shade > 0 {
+                    println!("{screen_x},{screen_y}: {shade}");
                 }
-            };
-
-            // Scale range from 4 bits to 1 byte (0-255).
-            let rgba = [shade * 15, shade * 15, shade * 15, 0xff];
-            pixel.copy_from_slice(&rgba);
+                let rgba = [shade * 15, shade * 15, shade * 15, 0xff];
+                pixel.copy_from_slice(&rgba);
+            }
         }
     }
 }
