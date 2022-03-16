@@ -1,73 +1,148 @@
 use crate::epd_highlevel;
 use crate::epd_highlevel::EpdiyHighlevelState;
+use embedded_graphics::draw_target::DrawTarget;
+use embedded_graphics::geometry::OriginDimensions;
+use embedded_graphics::pixelcolor::Gray4;
+use embedded_graphics::prelude::*;
 
 const EPD_WIDTH: usize = 960;
 const EPD_HEIGHT: usize = 540;
 const FB_SIZE: usize = EPD_WIDTH / 2 * EPD_HEIGHT;
 
-#[derive(Debug)]
-enum EpdState {
-    Uninitialized,
-    HighlevelState(EpdiyHighlevelState),
+/// Split a framebuffer byte into two pixels of 4 significant bits each.
+/// ```
+/// assert_eq!(epd_gfx::drawing::split_byte(0xFF), (0xF, 0xF));
+/// assert_eq!(epd_gfx::drawing::split_byte(0x8F), (0x8, 0xF));
+/// assert_eq!(epd_gfx::drawing::split_byte(0xF0), (0xF, 0x0));
+/// assert_eq!(epd_gfx::drawing::split_byte(0x00), (0x0, 0x0));
+/// ```
+pub fn split_byte(byte: u8) -> (u8, u8) {
+    let left = byte >> 4;
+    let right = byte & 0x0F;
+    return (left, right);
+}
+
+/// Join two sets of 4 bits into one.
+/// ```
+/// assert_eq!(epd_gfx::drawing::join_bytes(0xF, 0xF),(0xFF));
+/// assert_eq!(epd_gfx::drawing::join_bytes(0x8, 0xF),(0x8F));
+/// assert_eq!(epd_gfx::drawing::join_bytes(0xF, 0x0),(0xF0));
+/// assert_eq!(epd_gfx::drawing::join_bytes(0x0, 0x0),(0x00));
+/// ```
+pub fn join_bytes(left: u8, right: u8) -> u8 {
+    return ((left & 0x0F) << 4) | (right & 0x0F);
+}
+
+/// Transform a point (x,y) to landscape coordinates, if possible.
+/// After transformation, x will be in [0, 960) and y in [0, 540).
+/// Returns None if the point lies outside of the display.
+/// ```
+/// assert_eq!(epd_gfx::to_landscape(50,100), Some((859,50)));
+/// assert_eq!(epd_gfx::to_landscape(0,0), Some((959,0)));
+/// assert_eq!(epd_gfx::to_landscape(539,959), Some((0,539)));
+/// ```
+pub fn to_landscape(x: i32, y: i32) -> Option<(i32, i32)> {
+    if x < 0 || x >= 540 || y < 0 || y >= 960 {
+        return None;
+    }
+    return Some((960 - y - 1, x));
+}
+
+#[derive(Clone, Copy)]
+pub enum DisplayRotation {
+    /// No rotation
+    Rotate0,
+    /// Rotate by 90 degrees clockwise
+    Rotate90,
+    /// Rotate by 180 degrees clockwise
+    Rotate180,
+    /// Rotate 270 degrees clockwise
+    Rotate270,
+}
+
+impl Default for DisplayRotation {
+    fn default() -> Self {
+        DisplayRotation::Rotate0
+    }
 }
 
 #[derive(Debug)]
 pub struct Epd {
-    epd_state: EpdState,
+    epdiy_state: EpdiyHighlevelState,
+}
+
+impl DrawTarget for Epd {
+    type Color = Gray4; // Grayscale, 4 bits
+    type Error = core::convert::Infallible; // drawing operations can never fail, since we have an internal framebuffer
+
+    /// Draw individual pixels to the display without a defined order.
+    fn draw_iter<I>(&mut self, pixels: I) -> Result<(), Self::Error>
+    where
+        I: IntoIterator<Item = Pixel<Self::Color>>,
+    {
+        let fb = self.get_mut_buffer();
+        for pixel in pixels {
+            let Pixel(point, color) = pixel;
+            // FIXME: rotation
+            if let Some((x, y)) = to_landscape(point.x, point.y) {
+                // x is [0, 960) and y is [0, 540)
+                let buffer_idx: usize = ((y * 960 + x) / 2)
+                    .try_into()
+                    .expect("Invalid framebuffer index!");
+                let (left, right) = split_byte(fb[buffer_idx]);
+                // The framebuffer as understood by EPDIY has a swapped order within the bytes.
+                // Example: Assuming the first two bytes of the framebuffer are 0xABCD, the
+                // corresponding row of four pixels is: 0xB 0xA 0xD 0xC
+                if x % 2 == 0 {
+                    fb[buffer_idx] = join_bytes(left, color.luma());
+                } else {
+                    fb[buffer_idx] = join_bytes(color.luma(), right);
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+impl OriginDimensions for Epd {
+    /// Returns the size of the bounding box.
+    fn size(&self) -> Size {
+        Size {
+            width: EPD_WIDTH as u32,
+            height: EPD_HEIGHT as u32,
+        }
+    }
 }
 
 impl<'a> Epd {
     pub fn new() -> Self {
-        Self {
-            epd_state: EpdState::Uninitialized,
-        }
-    }
-
-    pub fn init(&mut self) {
         const EPD_LUT_4K: u32 = 2;
         unsafe { epd_highlevel::epd_init(EPD_LUT_4K) };
-        let state: epd_highlevel::EpdiyHighlevelState = unsafe { epd_highlevel::epd_hl_init() };
-        self.epd_state = EpdState::HighlevelState(state);
+        let state: EpdiyHighlevelState = unsafe { epd_highlevel::epd_hl_init() };
+        Self { epdiy_state: state }
     }
 
-    pub fn clear(&self) -> () {
-        match self.epd_state {
-            EpdState::Uninitialized => {}
-            EpdState::HighlevelState(_) => {
-                unsafe { epd_highlevel::epd_clear() };
-            }
-        }
+    // Clear the screen.
+    pub fn clear(&mut self) -> () {
+        unsafe { epd_highlevel::epd_clear() };
     }
 
-    /// Get a mutable slice into the  display framebuffer, if it is initialized.
-    pub fn get_framebuffer(&self) -> Option<&'a mut [u8]> {
-        match self.epd_state {
-            EpdState::Uninitialized => None,
-            EpdState::HighlevelState(state) => {
-                let fb: &mut [u8] =
-                    unsafe { std::slice::from_raw_parts_mut(state.front_fb, FB_SIZE) };
-                Some(fb)
-            }
-        }
-    }
-
+    /// Get a mutable slice into the  display framebuffer.
+    pub fn get_mut_buffer(&mut self) -> &'a mut [u8] {
+        let ptr = self.epdiy_state.front_fb;
+        let fb: &mut [u8] = unsafe { std::slice::from_raw_parts_mut(ptr, FB_SIZE) };
+        fb
     }
 
     /// Update the screen to display the current contents of the framebuffer.
-    pub fn update_screen(&self, temperature: i32) -> () {
-        match self.epd_state {
-            EpdState::Uninitialized => {}
-            EpdState::HighlevelState(mut state) => {
-                unsafe { epd_highlevel::epd_poweron() };
-
-                const MODE_GC16: epd_highlevel::EpdDrawMode = 0x2;
-                let result: epd_highlevel::EpdDrawError = unsafe {
-                    epd_highlevel::epd_hl_update_screen(&mut state, MODE_GC16, temperature)
-                };
-                println!("Draw result: {result:?}");
-
-                unsafe { epd_highlevel::epd_poweroff() };
-            }
+    pub fn update_screen(&mut self, temperature: i32) -> () {
+        const MODE_GC16: epd_highlevel::EpdDrawMode = 0x2;
+        unsafe {
+            epd_highlevel::epd_poweron();
+            let result: epd_highlevel::EpdDrawError =
+                epd_highlevel::epd_hl_update_screen(&mut self.epdiy_state, MODE_GC16, temperature);
+            println!("Draw result: {result:?}");
+            epd_highlevel::epd_poweroff();
         }
     }
 }

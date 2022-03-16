@@ -1,16 +1,18 @@
 use anyhow::Result;
 use brtsky;
+use embedded_graphics::{
+    pixelcolor::Gray4,
+    prelude::*,
+    primitives::{Circle, PrimitiveStyle, PrimitiveStyleBuilder},
+};
 use embedded_svc::http::client::Response;
-use embedded_svc::http::client::*;
 use embedded_svc::http::Status;
-use embedded_svc::io::Read;
 use epd_gfx;
 use esp_idf_svc::netif::*;
 use esp_idf_svc::nvs::*;
 use esp_idf_svc::sysloop::*;
 use esp_idf_sys::{vTaskDelay, TickType_t};
 use serde_json;
-use std::str;
 use std::sync::Arc;
 pub mod epd;
 pub mod epd_highlevel;
@@ -87,14 +89,29 @@ fn fetch() -> Result<()> {
 
 fn draw_screen() -> Result<()> {
     let mut epd = epd::Epd::new();
-    epd.init();
     epd.clear();
 
     println!("drawing...");
-    let mut fb = epd.get_framebuffer().unwrap();
+    let mut fb = epd.get_mut_buffer();
     //epd_gfx::set_all(&mut fb, 0xFF);
-    icons(&mut fb);
+    //icons(&mut fb);
     epd_gfx::font::draw_text(&mut fb, 0, 0, "Hello from RustType!", 32);
+
+    Circle::new(Point::new(50, 50), 50)
+        .into_styled(PrimitiveStyle::with_stroke(Gray4::BLACK, 1))
+        .draw(&mut epd)?;
+
+    let style = PrimitiveStyleBuilder::new()
+        .stroke_color(Gray4::new(0x4))
+        .stroke_width(3)
+        .fill_color(Gray4::new(0x8))
+        .build();
+
+    Circle::new(Point::new(200, 500), 100)
+        .into_styled(style)
+        .draw(&mut epd)?;
+
+    //self.icons();
 
     epd.update_screen(25i32);
     Ok(())

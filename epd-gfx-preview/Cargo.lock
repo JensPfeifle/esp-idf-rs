@@ -425,6 +425,8 @@ dependencies = [
 name = "epd-gfx"
 version = "0.1.0"
 dependencies = [
+ "embedded-graphics",
+ "embedded-graphics-core",
  "rusttype",
 ]
 
