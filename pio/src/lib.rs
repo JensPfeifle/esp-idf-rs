@@ -14,7 +14,6 @@ use std::str;
 use std::sync::Arc;
 pub mod epd;
 pub mod epd_highlevel;
-pub mod firasans;
 pub mod wifi;
 
 unsafe fn delay() {

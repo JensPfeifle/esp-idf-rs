@@ -1,6 +1,5 @@
 use crate::epd_highlevel;
 use crate::epd_highlevel::EpdiyHighlevelState;
-use crate::firasans::FiraSans_12;
 
 const EPD_WIDTH: usize = 960;
 const EPD_HEIGHT: usize = 540;
@@ -52,15 +51,6 @@ impl<'a> Epd {
         }
     }
 
-    pub fn write_text(&mut self, x: usize, y: usize, text: String) {
-        let t = text.as_ptr() as *const i8;
-        let font = &FiraSans_12 as *const epd_highlevel::EpdFont;
-        let x_ptr = &x as *const usize as *mut i32;
-        let y_ptr = &y as *const usize as *mut i32;
-
-        if let Some(fb) = self.get_framebuffer() {
-            unsafe { epd_highlevel::epd_write_default(font, t, x_ptr, y_ptr, fb.as_mut_ptr()) };
-        }
     }
 
     /// Update the screen to display the current contents of the framebuffer.
