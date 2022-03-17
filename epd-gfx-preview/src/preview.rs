@@ -18,7 +18,7 @@ impl PreviewDisplay {
         Self {
             width: WINDOW_WIDTH,
             height: WINDOW_HEIGHT,
-            buffer: [0; BUFFER_SIZE],
+            buffer: [0xF; BUFFER_SIZE],
         }
     }
 }
