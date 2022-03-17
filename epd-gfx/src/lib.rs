@@ -1,3 +1,4 @@
+pub mod drawables;
 pub mod drawing;
 pub mod font;
 pub mod icons;

@@ -107,10 +107,10 @@ impl World {
     }
 
     fn update(&mut self) -> Result<()> {
-        use epd_gfx::icons::Sunny;
+        use epd_gfx::drawables::{Cloud, Sun};
 
-        Sunny::new(Point::new(200, 200), 100).draw(&mut self.display)?;
-        Sunny::new(Point::new(200, 400), 50).draw(&mut self.display)?;
+        Sun::new(Point::new(200, 200), 100).draw(&mut self.display)?;
+        Cloud::new(Point::new(270, 400), 100).draw(&mut self.display)?;
         //self.icons();
         Ok(())
     }
