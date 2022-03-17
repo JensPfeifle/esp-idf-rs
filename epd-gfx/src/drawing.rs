@@ -1,4 +1,4 @@
-use crate::Point;
+use embedded_graphics::geometry::Point;
 
 /// Split a framebuffer byte into two pixels of 4 significant bits each.
 /// ```

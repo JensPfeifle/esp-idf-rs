@@ -121,6 +121,9 @@ impl World {
             .into_styled(style)
             .draw(&mut self.display)?;
 
+        use epd_gfx::icons::Sunny;
+
+        Sunny::new(Point::new(200, 200)).draw(&mut self.display)?;
         //self.icons();
         Ok(())
     }
@@ -165,9 +168,6 @@ impl World {
 
             if let Some(shade) = self.display.get_pixel(screen_x, screen_y) {
                 // Scale range from 4 bits to 1 byte (0-255).
-                if shade > 0 {
-                    println!("{screen_x},{screen_y}: {shade}");
-                }
                 let rgba = [shade * 15, shade * 15, shade * 15, 0xff];
                 pixel.copy_from_slice(&rgba);
             }
