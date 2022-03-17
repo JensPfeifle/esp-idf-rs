@@ -107,23 +107,10 @@ impl World {
     }
 
     fn update(&mut self) -> Result<()> {
-        Circle::new(Point::new(10, 50), 30)
-            .into_styled(PrimitiveStyle::with_stroke(Gray4::WHITE, 1))
-            .draw(&mut self.display)?;
-
-        let style = PrimitiveStyleBuilder::new()
-            .stroke_color(Gray4::new(0x4))
-            .stroke_width(3)
-            .fill_color(Gray4::new(0x8))
-            .build();
-
-        Circle::new(Point::new(50, 20), 10)
-            .into_styled(style)
-            .draw(&mut self.display)?;
-
         use epd_gfx::icons::Sunny;
 
-        Sunny::new(Point::new(200, 200)).draw(&mut self.display)?;
+        Sunny::new(Point::new(200, 200), 100).draw(&mut self.display)?;
+        Sunny::new(Point::new(200, 400), 50).draw(&mut self.display)?;
         //self.icons();
         Ok(())
     }

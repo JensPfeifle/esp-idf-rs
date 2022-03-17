@@ -266,14 +266,14 @@ pub struct Sunny<C: PixelColor> {
 }
 
 impl Sunny<Gray4> {
-    pub fn new(pos: Point) -> Self {
+    pub fn new(pos: Point, size: u32) -> Self {
         Self {
             pos,
             fg_color: Gray4::BLACK,
             bg_color: Gray4::WHITE,
             size: Size {
-                width: 100,
-                height: 100,
+                width: size,
+                height: size,
             },
         }
     }
