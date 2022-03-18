@@ -2,11 +2,7 @@
 #![forbid(unsafe_code)]
 
 use anyhow::Result;
-use embedded_graphics::{
-    pixelcolor::Gray4,
-    prelude::*,
-    primitives::{Circle, PrimitiveStyle, PrimitiveStyleBuilder},
-};
+use embedded_graphics::prelude::*;
 use log::error;
 use pixels::{Error, Pixels, SurfaceTexture};
 use preview::PreviewDisplay;
@@ -107,43 +103,66 @@ impl World {
     }
 
     fn update(&mut self) -> Result<()> {
-        use epd_gfx::drawables::{Cloud, Sun};
-
-        Sun::new(Point::new(200, 200), 100).draw(&mut self.display)?;
-        Cloud::new(Point::new(270, 400), 100).draw(&mut self.display)?;
-        //self.icons();
+        self.icons()?;
         Ok(())
     }
-    //fn icons(&mut self) {
-    //    let x1 = 120;
-    //    let x2 = 400;
 
-    //    let dy = 180;
-    //    let mut y = 100;
+    fn icons(&mut self) -> Result<()> {
+        let x1 = 120;
+        let x2 = 400;
 
-    //    //epd_gfx::drawing::draw_vline(&mut self.fb, x1, 0, 960, 0x8);
-    //    //epd_gfx::drawing::draw_vline(&mut self.fb, x2, 0, 960, 0x8);
+        let dy = 180;
+        let mut y = 100;
 
-    //    //epd_gfx::drawing::draw_hline(&mut self.fb, 0, y, 540, 0x8);
-    //    epd_gfx::icons::sunny(&mut self.fb, x1, y, epd_gfx::icons::IconSize::LARGE);
-    //    epd_gfx::icons::mostly_sunny(&mut self.fb, x2, y, epd_gfx::icons::IconSize::LARGE);
-    //    y += dy;
-    //    //epd_gfx::drawing::draw_hline(&mut self.fb, 0, y, 540, 0x8);
-    //    epd_gfx::icons::mostly_cloudy(&mut self.fb, x1, y, epd_gfx::icons::IconSize::LARGE);
-    //    epd_gfx::icons::cloudy(&mut self.fb, x2, y, epd_gfx::icons::IconSize::LARGE);
-    //    y += dy;
-    //    //epd_gfx::drawing::draw_hline(&mut self.fb, 0, y, 540, 0x8);
-    //    epd_gfx::icons::rain(&mut self.fb, x1, y, epd_gfx::icons::IconSize::LARGE);
-    //    epd_gfx::icons::expect_rain(&mut self.fb, x2, y, epd_gfx::icons::IconSize::LARGE);
-    //    y += dy;
-    //    //epd_gfx::drawing::draw_hline(&mut self.fb, 0, y, 540, 0x8);
-    //    epd_gfx::icons::tstorms(&mut self.fb, x2, y, epd_gfx::icons::IconSize::LARGE);
-    //    epd_gfx::icons::snow(&mut self.fb, x1, y, epd_gfx::icons::IconSize::LARGE);
-    //    y += dy;
-    //    //epd_gfx::drawing::draw_hline(&mut self.fb, 0, y, 540, 0x8);
-    //    epd_gfx::icons::fog(&mut self.fb, x1, y, epd_gfx::icons::IconSize::LARGE);
-    //    epd_gfx::icons::haze(&mut self.fb, x2, y, epd_gfx::icons::IconSize::LARGE);
-    //}
+        use epd_gfx::icons::*;
+
+        ClearDay {
+            pos: Point::new(x1, y),
+        }
+        .draw(&mut self.display)?;
+
+        ClearNight {
+            pos: Point::new(x2, y),
+        }
+        .draw(&mut self.display)?;
+
+        y += dy;
+        PartlyCloudyDay {
+            pos: Point::new(x1, y),
+        }
+        .draw(&mut self.display)?;
+        PartlyCloudyNight {
+            pos: Point::new(x2, y),
+        }
+        .draw(&mut self.display)?;
+
+        y += dy;
+        Wind {
+            pos: Point::new(x1, y),
+        }
+        .draw(&mut self.display)?;
+        Rain {
+            pos: Point::new(x2, y),
+        }
+        .draw(&mut self.display)?;
+
+        y += dy;
+        Snow {
+            pos: Point::new(x1, y),
+        }
+        .draw(&mut self.display)?;
+        Thunderstorm {
+            pos: Point::new(x2, y),
+        }
+        .draw(&mut self.display)?;
+
+        y += dy;
+        Fog {
+            pos: Point::new(x1, y),
+        }
+        .draw(&mut self.display)?;
+        Ok(())
+    }
 
     /// Draw the `World` state to the frame buffer.
     ///

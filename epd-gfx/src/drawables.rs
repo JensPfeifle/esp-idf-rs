@@ -1,6 +1,7 @@
 use embedded_graphics::pixelcolor::Gray4;
 use embedded_graphics::pixelcolor::PixelColor;
 use embedded_graphics::prelude::*;
+use embedded_graphics::primitives::Triangle;
 use embedded_graphics::primitives::{Circle, Line, PrimitiveStyle, Rectangle};
 use embedded_graphics_core::draw_target::DrawTarget;
 use embedded_graphics_core::geometry::Point;
@@ -238,6 +239,245 @@ where
             .into_styled(PrimitiveStyle::with_stroke(self.fg_color, 3))
             .draw(target)?;
 
+        Ok(())
+    }
+}
+
+pub struct Raindrop<C: PixelColor> {
+    pos: Point,
+    fg_color: C,
+    size: u32,
+}
+
+impl Raindrop<Gray4> {
+    pub fn new(pos: Point, size: u32) -> Self {
+        Self {
+            pos,
+            fg_color: Gray4::BLACK,
+            size,
+        }
+    }
+}
+
+impl<C> Drawable for Raindrop<C>
+where
+    C: PixelColor,
+{
+    type Color = C;
+    type Output = ();
+
+    fn draw<D>(&self, target: &mut D) -> Result<Self::Output, D::Error>
+    where
+        D: DrawTarget<Color = Self::Color>,
+    {
+        Circle::with_center(self.pos, self.size)
+            .into_styled(PrimitiveStyle::with_fill(self.fg_color))
+            .draw(target)?;
+        Triangle::new(
+            Point {
+                x: self.pos.x - self.size as i32 / 2,
+                y: self.pos.y,
+            },
+            Point {
+                x: self.pos.x,
+                y: self.pos.y - (1.25 * self.size as f32) as i32,
+            },
+            Point {
+                x: self.pos.x + self.size as i32 / 2,
+                y: self.pos.y,
+            },
+        )
+        .into_styled(PrimitiveStyle::with_fill(self.fg_color))
+        .draw(target)?;
+        Ok(())
+    }
+}
+
+pub struct Snowflake<C: PixelColor> {
+    pos: Point,
+    fg_color: C,
+    size: u32,
+}
+
+impl Snowflake<Gray4> {
+    pub fn new(pos: Point, size: u32) -> Self {
+        Self {
+            pos,
+            fg_color: Gray4::BLACK,
+            size,
+        }
+    }
+}
+
+impl<C> Drawable for Snowflake<C>
+where
+    C: PixelColor,
+{
+    type Color = C;
+    type Output = ();
+
+    fn draw<D>(&self, target: &mut D) -> Result<Self::Output, D::Error>
+    where
+        D: DrawTarget<Color = Self::Color>,
+    {
+        let stroke = (self.size / 20).max(1);
+        let size = self.size as i32;
+
+        Line::new(
+            Point {
+                x: self.pos.x - size / 2,
+                y: self.pos.y,
+            },
+            Point {
+                x: self.pos.x + size / 2,
+                y: self.pos.y,
+            },
+        )
+        .into_styled(PrimitiveStyle::with_stroke(self.fg_color, stroke))
+        .draw(target)?;
+        Line::new(
+            Point {
+                x: self.pos.x,
+                y: self.pos.y - size / 2,
+            },
+            Point {
+                x: self.pos.x,
+                y: self.pos.y + size / 2,
+            },
+        )
+        .into_styled(PrimitiveStyle::with_stroke(self.fg_color, stroke))
+        .draw(target)?;
+
+        let diagonal_size = size / 3;
+        Line::new(
+            Point {
+                x: self.pos.x - diagonal_size,
+                y: self.pos.y - diagonal_size,
+            },
+            Point {
+                x: self.pos.x + diagonal_size,
+                y: self.pos.y + diagonal_size,
+            },
+        )
+        .into_styled(PrimitiveStyle::with_stroke(self.fg_color, stroke))
+        .draw(target)?;
+
+        Line::new(
+            Point {
+                x: self.pos.x + diagonal_size,
+                y: self.pos.y - diagonal_size,
+            },
+            Point {
+                x: self.pos.x - diagonal_size,
+                y: self.pos.y + diagonal_size,
+            },
+        )
+        .into_styled(PrimitiveStyle::with_stroke(self.fg_color, stroke))
+        .draw(target)?;
+
+        Ok(())
+    }
+}
+
+pub struct Lightning<C: PixelColor> {
+    pos: Point,
+    fg_color: C,
+    size: u32,
+}
+
+impl Lightning<Gray4> {
+    pub fn new(pos: Point, size: u32) -> Self {
+        Self {
+            pos,
+            fg_color: Gray4::BLACK,
+            size,
+        }
+    }
+}
+
+impl<C> Drawable for Lightning<C>
+where
+    C: PixelColor,
+{
+    type Color = C;
+    type Output = ();
+
+    fn draw<D>(&self, target: &mut D) -> Result<Self::Output, D::Error>
+    where
+        D: DrawTarget<Color = Self::Color>,
+    {
+        let h = (self.size) as i32; // total height
+        let w = (self.size / 2) as i32; // total width
+        let dh = (self.size / 4) as i32; // height of "middle" segment
+        let stroke = (self.size / 30).max(1);
+        let x = self.pos.x;
+        let y = self.pos.y;
+        let p0 = Point { x, y: y - h / 2 }; // top
+        let p1 = Point {
+            x: x - w / 2,
+            y: y + dh / 2,
+        };
+        let p2 = Point {
+            x: x + w / 2,
+            y: y - dh / 2,
+        };
+        let p3 = Point { x, y: y + h / 2 }; // bottom
+
+        Line::new(p0, p1)
+            .into_styled(PrimitiveStyle::with_stroke(self.fg_color, stroke))
+            .draw(target)?;
+
+        Line::new(p1, p2)
+            .into_styled(PrimitiveStyle::with_stroke(self.fg_color, stroke))
+            .draw(target)?;
+        Line::new(p2, p3)
+            .into_styled(PrimitiveStyle::with_stroke(self.fg_color, stroke))
+            .draw(target)?;
+        Ok(())
+    }
+}
+
+pub struct Moon<C: PixelColor> {
+    pos: Point,
+    fg_color: C,
+    bg_color: C,
+    size: u32,
+}
+
+impl Moon<Gray4> {
+    pub fn new(pos: Point, size: u32) -> Self {
+        Self {
+            pos,
+            fg_color: Gray4::BLACK,
+            bg_color: Gray4::WHITE,
+            size,
+        }
+    }
+}
+
+impl<C> Drawable for Moon<C>
+where
+    C: PixelColor,
+{
+    type Color = C;
+    type Output = ();
+
+    fn draw<D>(&self, target: &mut D) -> Result<Self::Output, D::Error>
+    where
+        D: DrawTarget<Color = Self::Color>,
+    {
+        Circle::with_center(self.pos, self.size)
+            .into_styled(PrimitiveStyle::with_fill(self.fg_color))
+            .draw(target)?;
+        Circle::with_center(
+            Point {
+                x: self.pos.x + (self.size / 6) as i32,
+                y: self.pos.y,
+            },
+            self.size,
+        )
+        .into_styled(PrimitiveStyle::with_fill(self.bg_color))
+        .draw(target)?;
         Ok(())
     }
 }
