@@ -1,5 +1,6 @@
 use crate::epd_highlevel;
 use crate::epd_highlevel::EpdiyHighlevelState;
+use anyhow::Result;
 use embedded_graphics::draw_target::DrawTarget;
 use embedded_graphics::geometry::OriginDimensions;
 use embedded_graphics::pixelcolor::Gray4;

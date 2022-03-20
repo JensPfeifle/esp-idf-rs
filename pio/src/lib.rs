@@ -24,36 +24,61 @@ unsafe fn delay() {
     vTaskDelay(delay);
 }
 
-fn icons(fb: &mut [u8]) {
+fn icons(display: &mut epd::Epd) -> Result<()> {
     let x1 = 120;
     let x2 = 400;
 
     let dy = 180;
     let mut y = 100;
 
-    epd_gfx::drawing::draw_vline(fb, x1, 0, 960, 0x8);
-    epd_gfx::drawing::draw_vline(fb, x2, 0, 960, 0x8);
+    use epd_gfx::icons::*;
 
-    epd_gfx::drawing::draw_hline(fb, 0, y, 540, 0x8);
-    epd_gfx::icons::sunny(fb, x1, y, epd_gfx::icons::IconSize::LARGE);
-    epd_gfx::icons::mostly_sunny(fb, x2, y, epd_gfx::icons::IconSize::LARGE);
+    ClearDay {
+        pos: Point::new(x1, y),
+    }
+    .draw(display)?;
+
+    ClearNight {
+        pos: Point::new(x2, y),
+    }
+    .draw(display)?;
 
     y += dy;
-    epd_gfx::drawing::draw_hline(fb, 0, y, 540, 0x8);
-    epd_gfx::icons::mostly_cloudy(fb, x1, y, epd_gfx::icons::IconSize::LARGE);
-    epd_gfx::icons::cloudy(fb, x2, y, epd_gfx::icons::IconSize::LARGE);
+    PartlyCloudyDay {
+        pos: Point::new(x1, y),
+    }
+    .draw(display)?;
+    PartlyCloudyNight {
+        pos: Point::new(x2, y),
+    }
+    .draw(display)?;
+
     y += dy;
-    epd_gfx::drawing::draw_hline(fb, 0, y, 540, 0x8);
-    epd_gfx::icons::rain(fb, x1, y, epd_gfx::icons::IconSize::LARGE);
-    epd_gfx::icons::expect_rain(fb, x2, y, epd_gfx::icons::IconSize::LARGE);
+    Wind {
+        pos: Point::new(x1, y),
+    }
+    .draw(display)?;
+    Rain {
+        pos: Point::new(x2, y),
+    }
+    .draw(display)?;
+
     y += dy;
-    epd_gfx::drawing::draw_hline(fb, 0, y, 540, 0x8);
-    epd_gfx::icons::tstorms(fb, x2, y, epd_gfx::icons::IconSize::LARGE);
-    epd_gfx::icons::snow(fb, x1, y, epd_gfx::icons::IconSize::LARGE);
+    Snow {
+        pos: Point::new(x1, y),
+    }
+    .draw(display)?;
+    Thunderstorm {
+        pos: Point::new(x2, y),
+    }
+    .draw(display)?;
+
     y += dy;
-    epd_gfx::drawing::draw_hline(fb, 0, y, 540, 0x8);
-    epd_gfx::icons::fog(fb, x1, y, epd_gfx::icons::IconSize::LARGE);
-    epd_gfx::icons::haze(fb, x2, y, epd_gfx::icons::IconSize::LARGE);
+    Fog {
+        pos: Point::new(x1, y),
+    }
+    .draw(display)?;
+    Ok(())
 }
 
 fn main() -> Result<()> {
@@ -93,26 +118,7 @@ fn draw_screen() -> Result<()> {
 
     println!("drawing...");
     let mut fb = epd.get_mut_buffer();
-    //epd_gfx::set_all(&mut fb, 0xFF);
-    //icons(&mut fb);
-    epd_gfx::font::draw_text(&mut fb, 0, 0, "Hello from RustType!", 32);
-
-    Circle::new(Point::new(50, 50), 50)
-        .into_styled(PrimitiveStyle::with_stroke(Gray4::BLACK, 1))
-        .draw(&mut epd)?;
-
-    let style = PrimitiveStyleBuilder::new()
-        .stroke_color(Gray4::new(0x4))
-        .stroke_width(3)
-        .fill_color(Gray4::new(0x8))
-        .build();
-
-    Circle::new(Point::new(200, 500), 100)
-        .into_styled(style)
-        .draw(&mut epd)?;
-
-    //self.icons();
-
+    icons(&mut epd);
     epd.update_screen(25i32);
     Ok(())
 }
