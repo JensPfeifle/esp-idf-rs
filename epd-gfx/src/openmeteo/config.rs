@@ -54,6 +54,10 @@ impl OpenMeteoConfig {
         let mut params = vec![
             ("latitude".to_owned(), self.location.lat.to_string()),
             ("longitude".to_owned(), self.location.lon.to_string()),
+            (
+                "timezone".to_owned(),
+                self.timezone.replace("/", "%2F").to_string(),
+            ),
         ];
         if let Some(hourly_variables) = &self.hourly {
             params.push((
