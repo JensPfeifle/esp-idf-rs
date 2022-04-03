@@ -12,14 +12,35 @@ use esp_idf_svc::wifi::EspWifi;
 use esp_idf_sys::{vTaskDelay, TickType_t};
 use serde_json;
 use std::sync::Arc;
+use std::thread;
+use std::time::*;
 pub mod epd;
 pub mod epd_highlevel;
 pub mod wifi;
-
+use core::time::Duration;
+use embedded_svc::sys_time::SystemTime;
+use embedded_svc::timer::TimerService;
+use embedded_svc::timer::*;
+use esp_idf_svc::systime::EspSystemTime;
+use esp_idf_svc::timer::EspTimerService;
+use esp_idf_svc::timer::*;
 unsafe fn delay() {
     //https://github.com/espressif/esp-idf/issues/1646#issuecomment-913190625
     let delay: TickType_t = 500;
     vTaskDelay(delay);
+}
+
+fn test_timer() -> Result<EspTimer> {
+    thread::sleep(Duration::from_secs(3));
+
+    println!("About to schedule a periodic timer every five seconds");
+    let mut periodic_timer = EspTimerService::new()?.timer(move || {
+        println!("Tick from periodic timer");
+    })?;
+
+    periodic_timer.every(Duration::from_secs(60))?;
+
+    Ok(periodic_timer)
 }
 
 #[no_mangle]
@@ -42,10 +63,18 @@ fn main() -> Result<()> {
     // -> crashes :(
     //esp_idf_svc::log::EspLogger::initialize_default();
 
-    let wifi = wifi_init()?;
-    let weather = fetch_weather()?;
-    if let Some(current) = weather.current_weather {
-    draw_screen(current)?;
+    let _t = test_timer()?;
+    let _wifi = wifi_init()?;
+
+    let mut epd = epd::Epd::new();
+    epd.clear();
+
+    loop {
+        let weather = fetch_weather()?;
+        if let Some(current) = weather.current_weather {
+            draw_screen(&mut epd, current)?;
+        }
+        thread::sleep(Duration::from_secs(300));
     }
     Ok(())
 }
@@ -88,13 +117,15 @@ fn fetch_weather() -> Result<OpenMeteoData> {
     bail!("Unable to decode response! {:?}", body);
 }
 
-fn draw_screen(weather: OpenMeteoCurrentWeather) -> Result<()> {
+fn draw_screen(epd: &mut epd::Epd, weather: OpenMeteoCurrentWeather) -> Result<()> {
     println!("DRAWING...");
-    let mut epd = epd::Epd::new();
-    epd.clear();
-
-    epd_gfx::draw_header("21:24", "03.04.2022", &mut epd);
-    epd_gfx::draw_current_weather(&weather.weathercode, weather.temperature, &mut epd);
+    {
+        use embedded_graphics::draw_target::DrawTarget;
+        use embedded_graphics::pixelcolor::Gray4;
+        DrawTarget::clear(epd, Gray4::new(0xF));
+    }
+    epd_gfx::draw_header(&weather.time, "", epd)?;
+    epd_gfx::draw_current_weather(&weather.weathercode, weather.temperature, epd)?;
 
     epd.update_screen(25i32);
     println!("DRAW COMPLETE");

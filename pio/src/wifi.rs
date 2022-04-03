@@ -109,12 +109,12 @@ impl WeatherApi {
             .map(|(q, v)| format!("{q}={v}"))
             .collect::<Vec<String>>();
         let url = base + "?" + &params.join("&");
-        println!("Fetching from {url}");
         return url;
     }
 
     pub fn get(&mut self) -> Result<EspHttpResponse> {
         let req = self.client.get(self.url.clone())?;
+        println!("Fetching from {}", self.url);
         let resp = req.submit()?;
         Ok(resp)
     }
