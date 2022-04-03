@@ -6,7 +6,6 @@ authors = []
 
 [dependencies]
 anyhow = {version = "1"}
-brightsky = {path= "../brightsky-rs"}
 embedded-graphics = "0.7.1"
 embedded-svc = "0.17.2"
 epd-gfx = {path="../epd-gfx/"}

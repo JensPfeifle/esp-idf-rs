@@ -1,11 +1,14 @@
-use anyhow::{Context, Result};
-use brightsky::models::responses::CurrentWeatherResponse;
+use anyhow::{bail, Context, Result};
 use embedded_svc::http::client::Response;
 use embedded_svc::http::Status;
 use epd_gfx;
+use epd_gfx::openmeteo::responses::OpenMeteoCurrentWeather;
+use epd_gfx::openmeteo::{self, OpenMeteoData, OpenMeteoError};
+use epd_gfx::openmeteo::{Location, OpenMeteoConfig};
 use esp_idf_svc::netif::*;
 use esp_idf_svc::nvs::*;
 use esp_idf_svc::sysloop::*;
+use esp_idf_svc::wifi::EspWifi;
 use esp_idf_sys::{vTaskDelay, TickType_t};
 use serde_json;
 use std::sync::Arc;
@@ -24,55 +27,76 @@ extern "C" fn app_main() {
     match main() {
         Ok(_) => {}
         Err(err) => {
-            println!("Unhandled error in main:");
-            println!("{err:?}");
+            println!("Unhandled error in main: {}", err);
         }
     }
 
-    println!("looping forever...");
+    println!("Reached end of main - looping forever...");
     loop {
         unsafe { delay() };
     }
 }
 
 fn main() -> Result<()> {
-    fetch()?;
-    draw_screen()?;
+    // Bind the log crate to the ESP Logging facilities
+    // -> crashes :(
+    //esp_idf_svc::log::EspLogger::initialize_default();
+
+    let wifi = wifi_init()?;
+    let weather = fetch_weather()?;
+    if let Some(current) = weather.current_weather {
+    draw_screen(current)?;
+    }
     Ok(())
 }
 
-fn fetch() -> Result<()> {
-    println!("initializing...");
+fn wifi_init() -> Result<Box<EspWifi>> {
+    println!("INITIALIZING WIFI...");
 
     let netif_stack = Arc::new(EspNetifStack::new()?);
     let sys_loop_stack = Arc::new(EspSysLoopStack::new()?);
     let default_nvs = Arc::new(EspDefaultNvs::new()?);
-    let mut wifi = wifi::wifi(
+    let wifi = wifi::wifi(
         netif_stack.clone(),
         sys_loop_stack.clone(),
         default_nvs.clone(),
     )?;
+    println!("WIFI INITIALIZATION COMPLETE");
+    Ok(wifi)
+}
 
-    let mut client = wifi::WeatherApi::new()?;
+fn fetch_weather() -> Result<OpenMeteoData> {
+    println!("FETCHING DATA...");
+
+    let mut client = wifi::WeatherApi::new(OpenMeteoConfig::new(Location {
+        lat: 48.93,
+        lon: 8.4,
+    }))?;
     let response = client.get()?;
     let code = response.status();
     println!("status code: {code}");
-
     let bytes: Result<Vec<_>, _> =
         embedded_svc::io::Bytes::<_, 64>::new(response.reader()).collect();
     let body = bytes?;
-    let data: CurrentWeatherResponse =
-        serde_json::from_slice(&body).context("Unable to decode weather data")?;
-    println!("data: {data:?}");
-    Ok(())
+    if let Ok(data) = serde_json::from_slice::<openmeteo::OpenMeteoData>(&body) {
+        println!("data: {data:?}");
+        return Ok(data);
+    }
+    if let Ok(err) = serde_json::from_slice::<openmeteo::OpenMeteoError>(&body) {
+        bail!("400 error: {:?}", err);
+    }
+    bail!("Unable to decode response! {:?}", body);
 }
 
-fn draw_screen() -> Result<()> {
+fn draw_screen(weather: OpenMeteoCurrentWeather) -> Result<()> {
+    println!("DRAWING...");
     let mut epd = epd::Epd::new();
     epd.clear();
 
-    println!("drawing...");
-    let mut fb = epd.get_mut_buffer();
+    epd_gfx::draw_header("21:24", "03.04.2022", &mut epd);
+    epd_gfx::draw_current_weather(&weather.weathercode, weather.temperature, &mut epd);
+
     epd.update_screen(25i32);
+    println!("DRAW COMPLETE");
     Ok(())
 }

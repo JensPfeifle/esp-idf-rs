@@ -126,16 +126,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
-name = "brightsky"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_derive",
- "serde_json",
- "url",
-]
-
-[[package]]
 name = "bstr"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -464,10 +454,13 @@ name = "epd-gfx"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "brightsky",
  "embedded-graphics",
  "embedded-graphics-core",
  "rusttype",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "serde_repr",
 ]
 
 [[package]]
@@ -491,7 +484,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bindgen 0.58.1",
- "brightsky",
  "embedded-graphics",
  "embedded-svc",
  "epd-gfx",
@@ -1138,6 +1130,17 @@ dependencies = [
  "itoa",
  "ryu",
  "serde",
+]
+
+[[package]]
+name = "serde_repr"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "98d0516900518c29efa217c298fa1f4e6c6ffc85ae29fd7f4ee48f176e1a9ed5"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
