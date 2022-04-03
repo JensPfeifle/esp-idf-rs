@@ -21,9 +21,7 @@ impl PreviewDisplay {
             buffer: [0xF; BUFFER_SIZE],
         }
     }
-}
 
-impl PreviewDisplay {
     pub fn get_width(&self) -> u32 {
         self.width
     }
@@ -41,7 +39,7 @@ impl PreviewDisplay {
 
     fn buffer_index(&self, x: i32, y: i32) -> Option<usize> {
         // FIXME: rotation?
-        if x < 0 || x > self.width as i32 || y < 0 || y > self.height as i32 {
+        if x < 0 || x >= self.width as i32 || y < 0 || y >= self.height as i32 {
             return None;
         }
         let idx = y as usize * self.width as usize + x as usize;
