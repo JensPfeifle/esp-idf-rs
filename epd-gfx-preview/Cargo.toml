@@ -12,13 +12,11 @@ pixels = "0.9.0"
 winit = "0.26"
 winit_input_helper = "0.11"
 reqwest = {version = "0.11.9", features=["blocking"]}
-#brtsky = {git= "https://github.com/jenspfeifle/brtsky", branch="espidf"}
-brightsky = {path= "../brightsky-rs"}
 serde = "^1.0"
 serde_json="1"
 serde_derive = "^1.0"
+serde_repr = "0.1.7"
 anyhow = "1"
 embedded-graphics = "0.7.1"
 chrono = "0.4.19"
 urlencoding = "2.1.0"
-serde_repr = "0.1.7"

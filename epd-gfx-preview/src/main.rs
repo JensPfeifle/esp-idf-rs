@@ -1,24 +1,22 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
-use anyhow::Result;
-use brightsky::models::responses::WeatherResponse;
-use brightsky::models::WeatherRecord;
-
+use anyhow::{Context, Result};
 use chrono::{Timelike, Utc};
 use embedded_graphics::draw_target::DrawTarget;
 use embedded_graphics::pixelcolor::Gray4;
 use embedded_graphics::prelude::GrayColor;
-use log::{error, warn};
+use epd_gfx::openmeteo;
+use log::error;
 use pixels::{Error, Pixels, SurfaceTexture};
 use preview::PreviewDisplay;
+use reqwest;
 use winit::dpi::LogicalSize;
 use winit::event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
 
 pub mod preview;
-pub mod weather;
 
 const WINDOW_WIDTH: u32 = 540;
 const WINDOW_HEIGHT: u32 = 960;
@@ -103,9 +101,26 @@ fn main() -> Result<(), Error> {
     });
 }
 
+pub fn fetch_current_weather(
+    config: openmeteo::OpenMeteoConfig,
+) -> Result<openmeteo::OpenMeteoData> {
+    let client = reqwest::blocking::Client::new();
+    let base = "https://api.open-meteo.com/v1/forecast?".to_owned();
+    let query_params = config.into_tuples();
+    let res = client.get(base).query(&query_params).send()?;
+    let body = res.bytes()?;
+    println!("{body:?}");
+    let data: openmeteo::OpenMeteoData =
+        serde_json::from_slice(&body).context("Unable to decode response")?;
+    println!("{data:?}");
+    // FIXME: Parse/handle error
+
+    Ok(data)
+}
+
 struct World {
     display: PreviewDisplay,
-    data: Option<Vec<WeatherRecord>>,
+    data: Option<openmeteo::OpenMeteoData>,
 }
 
 impl World {
@@ -117,7 +132,7 @@ impl World {
     }
 
     fn update(&mut self) -> Result<()> {
-        let ettlingen = weather::Location {
+        let ettlingen = openmeteo::Location {
             lat: 48.93,
             lon: 8.4,
         };
@@ -131,21 +146,22 @@ impl World {
         epd_gfx::draw_grid(50, 50, 0xA, &mut self.display)?;
         epd_gfx::draw_header(&time, &date, &mut self.display)?;
 
-        match weather::fetch_current_weather(&ettlingen) {
-            Ok(WeatherResponse {
-                weather: Some(data),
-                ..
-            }) => {
+        let params = openmeteo::OpenMeteoConfig::new(ettlingen);
+        match fetch_current_weather(params) {
+            Ok(data) => {
                 self.data = Some(data);
-            }
-            Ok(WeatherResponse { weather: None, .. }) => {
-                warn!("No weather data in response");
             }
             Err(e) => return Err(e.context("Fetching weather data failed")),
         }
 
         if let Some(ref weather_data) = self.data {
-            epd_gfx::draw_current_weather(&weather_data[0], &mut self.display)?;
+            if let Some(ref current_weather) = weather_data.current_weather {
+                epd_gfx::draw_current_weather(
+                    &current_weather.weathercode,
+                    current_weather.temperature,
+                    &mut self.display,
+                )?;
+            }
         }
 
         Ok(())

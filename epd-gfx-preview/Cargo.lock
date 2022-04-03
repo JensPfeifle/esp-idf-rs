@@ -106,16 +106,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0d8c1fef690941d3e7788d328517591fecc684c084084702d6ff1641e993699a"
 
 [[package]]
-name = "brightsky"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_derive",
- "serde_json",
- "url",
-]
-
-[[package]]
 name = "bumpalo"
 version = "3.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -438,10 +428,13 @@ name = "epd-gfx"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "brightsky",
  "embedded-graphics",
  "embedded-graphics-core",
  "rusttype",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "serde_repr",
 ]
 
 [[package]]
@@ -449,7 +442,6 @@ name = "epd-gfx-preview"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "brightsky",
  "chrono",
  "embedded-graphics",
  "env_logger",
