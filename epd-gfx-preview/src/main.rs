@@ -2,8 +2,14 @@
 #![forbid(unsafe_code)]
 
 use anyhow::Result;
-use embedded_graphics::prelude::*;
-use log::error;
+use brightsky::models::responses::WeatherResponse;
+use brightsky::models::WeatherRecord;
+
+use chrono::{Timelike, Utc};
+use embedded_graphics::draw_target::DrawTarget;
+use embedded_graphics::pixelcolor::Gray4;
+use embedded_graphics::prelude::GrayColor;
+use log::{error, warn};
 use pixels::{Error, Pixels, SurfaceTexture};
 use preview::PreviewDisplay;
 use winit::dpi::LogicalSize;
@@ -72,7 +78,13 @@ fn main() -> Result<(), Error> {
                 }
             }
             Event::RedrawRequested(_) => {
-                world.update();
+                let update_result = world.update();
+                if let Err(result) = update_result {
+                    error!("world update failed: {:?}", result);
+                    *control_flow = ControlFlow::Exit;
+                    return;
+                }
+
                 world.draw(pixels.get_frame());
                 if pixels
                     .render()
@@ -93,74 +105,49 @@ fn main() -> Result<(), Error> {
 
 struct World {
     display: PreviewDisplay,
+    data: Option<Vec<WeatherRecord>>,
 }
 
 impl World {
     fn new() -> Self {
         Self {
             display: PreviewDisplay::new(),
+            data: None,
         }
     }
 
     fn update(&mut self) -> Result<()> {
-        self.icons()?;
-        Ok(())
-    }
+        let ettlingen = weather::Location {
+            lat: 48.93,
+            lon: 8.4,
+        };
 
-    fn icons(&mut self) -> Result<()> {
-        let x1 = 120;
-        let x2 = 400;
+        self.display.clear(Gray4::WHITE)?;
 
-        let dy = 180;
-        let mut y = 100;
+        let now = Utc::now();
+        let time = format!("{:02}:{:02}:{:02}", now.hour(), now.minute(), now.second(),);
+        let date = now.date().format("%Y-%m-%d").to_string();
+        epd_gfx::draw_grid(10, 10, 0xD, &mut self.display)?;
+        epd_gfx::draw_grid(50, 50, 0xA, &mut self.display)?;
+        epd_gfx::draw_header(&time, &date, &mut self.display)?;
 
-        use epd_gfx::icons::*;
+        match weather::fetch_current_weather(&ettlingen) {
+            Ok(WeatherResponse {
+                weather: Some(data),
+                ..
+            }) => {
+                self.data = Some(data);
+            }
+            Ok(WeatherResponse { weather: None, .. }) => {
+                warn!("No weather data in response");
+            }
+            Err(e) => return Err(e.context("Fetching weather data failed")),
+        }
 
-        ClearDay {
-            pos: Point::new(x1, y),
+        if let Some(ref weather_data) = self.data {
+            epd_gfx::draw_current_weather(&weather_data[0], &mut self.display)?;
         }
-        .draw(&mut self.display)?;
 
-        ClearNight {
-            pos: Point::new(x2, y),
-        }
-        .draw(&mut self.display)?;
-
-        y += dy;
-        PartlyCloudyDay {
-            pos: Point::new(x1, y),
-        }
-        .draw(&mut self.display)?;
-        PartlyCloudyNight {
-            pos: Point::new(x2, y),
-        }
-        .draw(&mut self.display)?;
-
-        y += dy;
-        Wind {
-            pos: Point::new(x1, y),
-        }
-        .draw(&mut self.display)?;
-        Rain {
-            pos: Point::new(x2, y),
-        }
-        .draw(&mut self.display)?;
-
-        y += dy;
-        Snow {
-            pos: Point::new(x1, y),
-        }
-        .draw(&mut self.display)?;
-        Thunderstorm {
-            pos: Point::new(x2, y),
-        }
-        .draw(&mut self.display)?;
-
-        y += dy;
-        Fog {
-            pos: Point::new(x1, y),
-        }
-        .draw(&mut self.display)?;
         Ok(())
     }
 

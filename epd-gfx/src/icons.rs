@@ -5,6 +5,20 @@ use embedded_graphics::primitives::{Line, PrimitiveStyle};
 use embedded_graphics_core::draw_target::DrawTarget;
 use embedded_graphics_core::geometry::Point;
 use embedded_graphics_core::Drawable;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub enum Icons {
+    ClearDay,
+    ClearNight,
+    PartlyCloudyDay,
+    PartlyCloudyNight,
+    Cloudy,
+    Fog,
+    Rain,
+    Snow,
+    Thunderstorm,
+}
+
 pub struct ClearDay {
     pub pos: Point,
 }

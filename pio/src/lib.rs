@@ -1,10 +1,5 @@
-use anyhow::Result;
-use brtsky;
-use embedded_graphics::{
-    pixelcolor::Gray4,
-    prelude::*,
-    primitives::{Circle, PrimitiveStyle, PrimitiveStyleBuilder},
-};
+use anyhow::{Context, Result};
+use brightsky::models::responses::CurrentWeatherResponse;
 use embedded_svc::http::client::Response;
 use embedded_svc::http::Status;
 use epd_gfx;
@@ -24,61 +19,20 @@ unsafe fn delay() {
     vTaskDelay(delay);
 }
 
-fn icons(display: &mut epd::Epd) -> Result<()> {
-    let x1 = 120;
-    let x2 = 400;
+#[no_mangle]
+extern "C" fn app_main() {
+    match main() {
+        Ok(_) => {}
+        Err(err) => {
+            println!("Unhandled error in main:");
+            println!("{err:?}");
+        }
+    }
 
-    let dy = 180;
-    let mut y = 100;
-
-    use epd_gfx::icons::*;
-
-    ClearDay {
-        pos: Point::new(x1, y),
+    println!("looping forever...");
+    loop {
+        unsafe { delay() };
     }
-    .draw(display)?;
-
-    ClearNight {
-        pos: Point::new(x2, y),
-    }
-    .draw(display)?;
-
-    y += dy;
-    PartlyCloudyDay {
-        pos: Point::new(x1, y),
-    }
-    .draw(display)?;
-    PartlyCloudyNight {
-        pos: Point::new(x2, y),
-    }
-    .draw(display)?;
-
-    y += dy;
-    Wind {
-        pos: Point::new(x1, y),
-    }
-    .draw(display)?;
-    Rain {
-        pos: Point::new(x2, y),
-    }
-    .draw(display)?;
-
-    y += dy;
-    Snow {
-        pos: Point::new(x1, y),
-    }
-    .draw(display)?;
-    Thunderstorm {
-        pos: Point::new(x2, y),
-    }
-    .draw(display)?;
-
-    y += dy;
-    Fog {
-        pos: Point::new(x1, y),
-    }
-    .draw(display)?;
-    Ok(())
 }
 
 fn main() -> Result<()> {
@@ -107,7 +61,8 @@ fn fetch() -> Result<()> {
     let bytes: Result<Vec<_>, _> =
         embedded_svc::io::Bytes::<_, 64>::new(response.reader()).collect();
     let body = bytes?;
-    let data: brtsky::Response = serde_json::from_slice(&body).unwrap();
+    let data: CurrentWeatherResponse =
+        serde_json::from_slice(&body).context("Unable to decode weather data")?;
     println!("data: {data:?}");
     Ok(())
 }
@@ -118,23 +73,6 @@ fn draw_screen() -> Result<()> {
 
     println!("drawing...");
     let mut fb = epd.get_mut_buffer();
-    icons(&mut epd);
     epd.update_screen(25i32);
     Ok(())
-}
-
-#[no_mangle]
-extern "C" fn app_main() {
-    match main() {
-        Ok(_) => {}
-        Err(err) => {
-            println!("Unhandled error in main:");
-            println!("{err:?}");
-        }
-    }
-
-    println!("looping forever...");
-    loop {
-        unsafe { delay() };
-    }
 }

@@ -6,7 +6,7 @@ authors = []
 
 [dependencies]
 anyhow = {version = "1"}
-brtsky = {git= "https://github.com/jenspfeifle/brtsky", branch="espidf"}
+brightsky = {path= "../brightsky-rs"}
 embedded-graphics = "0.7.1"
 embedded-svc = "0.17.2"
 epd-gfx = {path="../epd-gfx/"}

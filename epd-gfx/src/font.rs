@@ -1,8 +1,7 @@
 use embedded_graphics::{pixelcolor::Gray4, prelude::*};
-
 use rusttype::{point, Font, Scale};
 
-struct TrueTypeText {
+pub struct TrueTypeText {
     pos: Point,
     size: f32,
     text: Box<String>,

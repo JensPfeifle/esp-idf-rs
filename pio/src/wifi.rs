@@ -90,7 +90,7 @@ impl WeatherApi {
         let client = EspHttpClient::new_default()?;
         Ok(Self {
             client: Box::new(client),
-            url: "https://api.brightsky.dev/weather?lat=52&lon=7.6&date=2020-04-21".to_owned(),
+            url: "https://api.brightsky.dev/current_weather?lat=52&lon=7.6".to_owned(),
         })
     }
 
