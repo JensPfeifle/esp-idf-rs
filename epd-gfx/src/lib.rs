@@ -1,10 +1,12 @@
-pub mod drawables;
 pub mod font;
-pub mod icons;
+pub mod openmeteo;
+pub mod weather_icons;
+
 use crate::font::TrueTypeText;
-use crate::icons::*;
-use brightsky::models::Icon;
-use brightsky::models::WeatherRecord;
+use crate::openmeteo::WMOCode;
+use crate::weather_icons::*;
+
+use anyhow::Result;
 use embedded_graphics::pixelcolor::Gray4;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::Line;
@@ -27,55 +29,45 @@ where
     Ok(())
 }
 
-pub fn draw_icon<D>(
-    selector: Option<brightsky::models::Icon>,
-    icon_pos: Point,
-    display: &mut D,
-) -> Result<(), core::convert::Infallible>
+pub fn draw_current_weather<D>(code: &WMOCode, temperature: f32, display: &mut D) -> Result<()>
 where
     D: DrawTarget<Color = Gray4, Error = core::convert::Infallible>,
 {
-    match selector {
-        Some(Icon::ClearDay) => ClearDay { pos: icon_pos }.draw(display)?,
-        Some(Icon::ClearNight) => ClearNight { pos: icon_pos }.draw(display)?,
-        Some(Icon::PartlyCloudyDay) => PartlyCloudyDay { pos: icon_pos }.draw(display)?,
-        Some(Icon::PartlyCloudyNight) => PartlyCloudyNight { pos: icon_pos }.draw(display)?,
-        Some(Icon::Cloudy) => Cloudy { pos: icon_pos }.draw(display)?,
-        Some(Icon::Fog) => Fog { pos: icon_pos }.draw(display)?,
-        Some(Icon::Wind) => Wind { pos: icon_pos }.draw(display)?,
-        Some(Icon::Rain) => Rain { pos: icon_pos }.draw(display)?,
-        Some(Icon::Sleet) => Snow { pos: icon_pos }.draw(display)?,
-        Some(Icon::Snow) => Snow { pos: icon_pos }.draw(display)?,
-        Some(Icon::Hail) => Snow { pos: icon_pos }.draw(display)?,
-        Some(Icon::Thunderstorm) => Thunderstorm { pos: icon_pos }.draw(display)?,
-        None => {}
-    }
-    Ok(())
-}
-
-pub fn draw_current_weather<D>(
-    weather_data: &WeatherRecord,
-    display: &mut D,
-) -> Result<(), core::convert::Infallible>
-where
-    D: DrawTarget<Color = Gray4, Error = core::convert::Infallible>,
-{
-    println!("data: {weather_data:?}");
-
     // Current weather icon
     let icon_pos = Point { x: 120, y: 150 };
-    draw_icon(weather_data.icon, icon_pos, display)?;
 
-    // Current temperature
-    let temperature = weather_data.temperature.clone();
-    TrueTypeText::new(
-        Point { x: 400, y: 50 },
-        temperature
-            .map(|t| format!("{t} °C"))
-            .unwrap_or(String::from("?")),
-        50.0,
-    )
-    .draw(display)?;
+    match code {
+        WMOCode::MainlyClear | WMOCode::ClearSky => ClearDay { pos: icon_pos }.draw(display)?,
+        WMOCode::PartyCloudy => PartlyCloudyDay { pos: icon_pos }.draw(display)?,
+        WMOCode::Overcast => icons::Cloudy { pos: icon_pos }.draw(display)?,
+        WMOCode::Fog => Fog { pos: icon_pos }.draw(display)?,
+        //Wind => Wind { pos: icon_pos }.draw(display)?,
+        WMOCode::HeavyRain
+        | WMOCode::LightRain
+        | WMOCode::LightDrizzle
+        | WMOCode::ModerateDrizzle
+        | WMOCode::DenseDrizzle
+        | WMOCode::LightFreezingRain
+        | WMOCode::HeavyFreezingRain
+        | WMOCode::ModerateRain => Rain { pos: icon_pos }.draw(display)?,
+        WMOCode::LightSnow
+        | WMOCode::HeavySnow
+        | WMOCode::SnowGrains
+        | WMOCode::ModerateSnow
+        | WMOCode::LightSnowShowers
+        | WMOCode::HeavySnowShowers => Snow { pos: icon_pos }.draw(display)?,
+        WMOCode::Thunderstorm
+        | WMOCode::ThunderstormWithHeavyHail
+        | WMOCode::ThunderstormWithLightHail => {
+            icons::Thunderstorm { pos: icon_pos }.draw(display)?
+        }
+        _ => {
+            // Fall back to text.
+            TrueTypeText::new(icon_pos, code.to_string(), 30.0).draw(display)?;
+        }
+    }
+
+    TrueTypeText::new(Point { x: 400, y: 50 }, format!("{temperature} °C"), 50.0).draw(display)?;
 
     Ok(())
 }

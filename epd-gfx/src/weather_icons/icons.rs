@@ -1,4 +1,4 @@
-use crate::drawables::{Cloud, Lightning, Moon, Raindrop, Snowflake, Sun};
+use crate::weather_icons::drawables::{Cloud, Lightning, Moon, Raindrop, Snowflake, Sun};
 use embedded_graphics::pixelcolor::Gray4;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::{Line, PrimitiveStyle};
