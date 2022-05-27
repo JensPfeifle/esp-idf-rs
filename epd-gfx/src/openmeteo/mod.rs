@@ -1,10 +1,33 @@
 pub mod config;
 pub mod responses;
-
+use anyhow::{bail, Error};
+use bytes::Bytes;
 pub use config::{Location, OpenMeteoConfig};
-pub use responses::{OpenMeteoData, OpenMeteoError, OpenMeteoResponse};
+pub use responses::{OpenMeteoData, OpenMeteoError};
 use serde_repr::Deserialize_repr;
 use std::fmt;
+
+pub fn build_url(config: &OpenMeteoConfig) -> String {
+    let base = "http://api.open-meteo.com/v1/forecast".to_owned();
+    let query_params = config.into_tuples();
+    let params = query_params
+        .iter()
+        .map(|(q, v)| format!("{q}={v}"))
+        .map(|s| s.replace("/", "%2F"))
+        .collect::<Vec<String>>();
+    let url = base + "?" + &params.join("&");
+    return url;
+}
+
+pub fn parse_reponse(bytes: &Bytes) -> Result<OpenMeteoData, Error> {
+    if let Ok(data) = serde_json::from_slice::<OpenMeteoData>(bytes) {
+        return Ok(data);
+    }
+    if let Ok(err) = serde_json::from_slice::<OpenMeteoError>(bytes) {
+        bail!("OpenMeteo API returned error response: {:?}", err.reason);
+    }
+    bail!("Unable to decode response! {:?}", bytes);
+}
 
 #[derive(Clone, Deserialize_repr, PartialEq, Debug)]
 #[repr(u8)]

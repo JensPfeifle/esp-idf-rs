@@ -1,4 +1,4 @@
-FROM espressif/idf-rust
+FROM espressif/idf-rust:1.60
 
 # Install addiitonal dependencies
 ARG DEBIAN_FRONTEND=noninteractive
@@ -15,5 +15,5 @@ RUN pip install -U platformio==${PLATFORMIO_VERSION} && \
   mkdir -p /.platformio && \
   chmod a+rwx /.platformio
 
-WORKDIR /project 
+WORKDIR /project
 RUN bash -c "rustup override set esp"

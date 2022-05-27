@@ -7,7 +7,6 @@ build:
  # Your user (outside the container) must have access to /dev/ttyACM0.
 run:
 	 podman run  \
-	 --device /dev/ttyACM0 \
 	 --annotation io.oci.keep_original_groups=1 \
    --security-opt label=disable \
 	 -v /home/jens/git/esp-idf-rs:/project:Z \

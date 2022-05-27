@@ -6,11 +6,12 @@ authors = []
 
 [dependencies]
 anyhow = {version = "1"}
+bytes = "1.1.0"
 embedded-graphics = "0.7.1"
 embedded-svc = "0.17.2"
 epd-gfx = {path="../epd-gfx/"}
-esp-idf-svc ={version=  "0.37.2", features = ["experimental", "alloc"]}
-esp-idf-sys = "0.30"
+esp-idf-svc ={version=  "0.41", features = ["experimental", "alloc"]}
+esp-idf-sys = "0.31"
 log = { version = "0.4", default-features = false }
 serde_json="1"
 
@@ -23,9 +24,9 @@ bindgen = "0.58.1"
 
 [features]
 
-[patch.crates-io]
+#[patch.crates-io]
 # https://github.com/esp-rs/esp-idf-hal/issues/47
-embuild = { path = './embuild' }
+#embuild = { path = './embuild' }
 
 
 [lib]

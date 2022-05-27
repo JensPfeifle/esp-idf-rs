@@ -1,16 +1,15 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
-
-use anyhow::{Context, Result};
-use chrono::{Timelike, Utc};
+use anyhow::{Context, Error, Result};
+use bytes::Bytes;
 use embedded_graphics::draw_target::DrawTarget;
 use embedded_graphics::pixelcolor::Gray4;
 use embedded_graphics::prelude::GrayColor;
 use epd_gfx::openmeteo;
 use log::error;
-use pixels::{Error, Pixels, SurfaceTexture};
+use pixels::{Pixels, SurfaceTexture};
 use preview::PreviewDisplay;
-use reqwest;
+use ureq;
 use winit::dpi::LogicalSize;
 use winit::event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -101,17 +100,21 @@ fn main() -> Result<(), Error> {
     });
 }
 
+pub fn fetch_data(url: &str) -> Result<Bytes> {
+    let body: String = ureq::get(url)
+        .set("Example-Header", "header value")
+        .call()?
+        .into_string()?;
+    return Ok(Bytes::from(body));
+}
+
 pub fn fetch_current_weather(
     config: openmeteo::OpenMeteoConfig,
 ) -> Result<openmeteo::OpenMeteoData> {
-    let client = reqwest::blocking::Client::new();
-    let base = "https://api.open-meteo.com/v1/forecast?".to_owned();
-    let query_params = config.into_tuples();
-    let res = client.get(base).query(&query_params).send()?;
-    let body = res.bytes()?;
-    println!("{body:?}");
+    let url = openmeteo::build_url(&config);
+    let data = fetch_data(&url)?;
     let data: openmeteo::OpenMeteoData =
-        serde_json::from_slice(&body).context("Unable to decode response")?;
+        serde_json::from_slice(&data).context("Unable to decode response")?;
     println!("{data:?}");
     // FIXME: Parse/handle error
 
@@ -139,12 +142,9 @@ impl World {
 
         self.display.clear(Gray4::WHITE)?;
 
-        let now = Utc::now();
-        let time = format!("{:02}:{:02}:{:02}", now.hour(), now.minute(), now.second(),);
-        let date = now.date().format("%Y-%m-%d").to_string();
         epd_gfx::draw_grid(10, 10, 0xD, &mut self.display)?;
         epd_gfx::draw_grid(50, 50, 0xA, &mut self.display)?;
-        epd_gfx::draw_header(&time, &date, &mut self.display)?;
+        //epd_gfx::draw_icon_test_page(200, &mut self.display)?;
 
         let params = openmeteo::OpenMeteoConfig::new(ettlingen);
         match fetch_current_weather(params) {
@@ -154,16 +154,9 @@ impl World {
             Err(e) => return Err(e.context("Fetching weather data failed")),
         }
 
-        if let Some(ref weather_data) = self.data {
-            if let Some(ref current_weather) = weather_data.current_weather {
-                epd_gfx::draw_current_weather(
-                    &current_weather.weathercode,
-                    current_weather.temperature,
-                    &mut self.display,
-                )?;
-            }
+        if let Some(ref d) = self.data {
+            epd_gfx::draw(d, &mut self.display)?;
         }
-
         Ok(())
     }
 

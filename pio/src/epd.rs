@@ -136,7 +136,7 @@ impl<'a> Epd {
     }
 
     /// Update the screen to display the current contents of the framebuffer.
-    pub fn update_screen(&mut self, temperature: i32) -> () {
+    pub fn draw(&mut self, temperature: i32) -> () {
         const MODE_GC16: epd_highlevel::EpdDrawMode = 0x2;
         unsafe {
             epd_highlevel::epd_poweron();

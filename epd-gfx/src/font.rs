@@ -3,16 +3,27 @@ use rusttype::{point, Font, Scale};
 
 pub struct TrueTypeText {
     pos: Point,
-    size: f32,
+    scale: Scale,
     text: Box<String>,
+    centered: bool,
 }
 
 impl TrueTypeText {
     pub fn new(pos: Point, text: String, size: f32) -> Self {
         Self {
             pos,
-            size,
+            scale: Scale::uniform(size),
             text: Box::new(text),
+            centered: false,
+        }
+    }
+
+    pub fn centered(pos: Point, text: String, size: f32) -> Self {
+        Self {
+            pos,
+            scale: Scale::uniform(size),
+            text: Box::new(text),
+            centered: true,
         }
     }
 }
@@ -31,17 +42,30 @@ impl Drawable for TrueTypeText {
         let font = Font::try_from_bytes(font_data as &[u8]).expect("Error constructing Font");
 
         // The font size to use
-        let scale = Scale::uniform(self.size);
 
-        let v_metrics = font.v_metrics(scale);
+        let v_metrics = font.v_metrics(self.scale);
 
         // layout the glyphs in a line
         let glyphs: Vec<_> = font
-            .layout(&self.text, scale, point(0.0, v_metrics.ascent))
+            .layout(&self.text, self.scale, point(0.0, v_metrics.ascent))
             .collect();
 
-        let x_pos = self.pos.x;
         let y_pos = self.pos.y;
+        let x_pos = if self.centered {
+            let min_x = glyphs
+                .first()
+                .map(|g| g.pixel_bounding_box().unwrap().min.x)
+                .unwrap();
+            let max_x = glyphs
+                .last()
+                .map(|g| g.pixel_bounding_box().unwrap().max.x)
+                .unwrap();
+            let width = max_x - min_x;
+            self.pos.x - (width / 2)
+        } else {
+            self.pos.x
+        };
+
         // Loop through the glyphs in the text, positing each one on a line
         for glyph in glyphs {
             if let Some(bounding_box) = glyph.pixel_bounding_box() {

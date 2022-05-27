@@ -38,7 +38,10 @@ impl OpenMeteoConfig {
     pub fn new(location: Location) -> Self {
         Self {
             location,
-            hourly: None,
+            hourly: Some(vec![
+                HourlyVariables::apparent_temperature,
+                HourlyVariables::weathercode,
+            ]),
             daily: None,
             current_weather: true,
             temperature_unit: "celcius".to_owned(),
@@ -54,37 +57,29 @@ impl OpenMeteoConfig {
         let mut params = vec![
             ("latitude".to_owned(), self.location.lat.to_string()),
             ("longitude".to_owned(), self.location.lon.to_string()),
+            ("past_days".to_owned(), self.past_days.to_string()),
             (
                 "timezone".to_owned(),
-                self.timezone.replace("/", "%2F").to_string(),
+                self.timezone.to_string(), //.replace("/", "%2F").to_string(),
             ),
         ];
         if let Some(hourly_variables) = &self.hourly {
-            params.push((
-                "hourly".into(),
+            params.extend(
                 hourly_variables
                     .iter()
-                    .map(|e| e.to_string())
-                    .collect::<Vec<String>>()
-                    .join(","),
-            ));
+                    .map(|e| ("hourly".into(), e.to_string())),
+            );
         }
         if let Some(daily_variables) = &self.daily {
-            params.push((
-                "daily".into(),
+            params.extend(
                 daily_variables
                     .iter()
-                    .map(|e| e.to_string())
-                    .collect::<Vec<String>>()
-                    .join(","),
-            ));
+                    .map(|e| ("daily".into(), e.to_string())),
+            );
         }
         if self.current_weather {
             params.push(("current_weather".into(), "true".into()));
         }
-        //("daily".to_owned(), &"sunrise".to_owned()),
-        //("timezone".to_owned(), &"Europe/Berlin".to_owned()),
-        //("windspeed_unit".to_owned(), &"kn".to_owned()),
         return params;
     }
 }

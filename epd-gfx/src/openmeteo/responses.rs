@@ -3,13 +3,6 @@ use crate::openmeteo::WMOCode;
 use serde_derive::Deserialize;
 
 #[derive(Clone, Debug, PartialEq, Deserialize)]
-#[serde(untagged)]
-pub enum OpenMeteoResponse {
-    OpenMeteoError,
-    OpenMeteoData,
-}
-
-#[derive(Clone, Debug, PartialEq, Deserialize)]
 pub struct OpenMeteoError {
     /// Always set true for errors.
     pub error: bool,
