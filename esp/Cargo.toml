@@ -12,10 +12,14 @@ autobenches = true
 publish = true
 
 [dependencies]
+anyhow = {version = "1"}
+embedded-graphics = "0.7"
 
 [dev-dependencies]
 
 [build-dependencies]
+bindgen = "0.58"
+anyhow = "1"
 
 [target]
 
