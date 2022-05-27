@@ -1,0 +1,42 @@
+[package]
+name = "esp"
+edition = "2021"
+version = "0.1.0"
+authors = []
+keywords = []
+categories = []
+autobins = true
+autoexamples = true
+autotests = true
+autobenches = true
+publish = true
+
+[dependencies]
+
+[dev-dependencies]
+
+[build-dependencies]
+
+[target]
+
+[features]
+
+[patch]
+
+[lib]
+path = "src/lib.rs"
+name = "esp"
+test = true
+doctest = true
+bench = true
+doc = true
+plugin = false
+proc-macro = false
+harness = true
+edition = "2021"
+crate-type = ["staticlib"]
+required-features = []
+
+[profile]
+[badges.maintenance]
+status = "none"
