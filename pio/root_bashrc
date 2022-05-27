@@ -1,0 +1,4 @@
+# these should be added to /root/.bashrc to make clang available
+export PATH="/opt/esp/tools/xtensa-esp32-elf-clang/esp-14.0.0-20220415-x86_64-unknown-linux-gnu/bin/:/opt/esp/tools/xtensa-esp32-elf-gcc/8_4_0-esp-2021r2-patch3-x86_64-unknown-linux-gnu/bin/:$PATH"
+export LIBCLANG_PATH="/opt/esp/tools/xtensa-esp32-elf-clang/esp-14.0.0-20220415-x86_64-unknown-linux-gnu/lib/"
+export PIP_USER="no"

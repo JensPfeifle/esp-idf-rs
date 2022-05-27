@@ -512,9 +512,9 @@ dependencies = [
  "bytes",
  "embedded-graphics",
  "embedded-svc 0.17.5",
+ "embuild",
  "epd-gfx",
  "esp-idf-svc",
- "esp-idf-sys",
  "log",
  "serde_json",
 ]
