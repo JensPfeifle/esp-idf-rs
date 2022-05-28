@@ -13,6 +13,7 @@ RUN chmod a+x ./install-rust-toolchain.sh
 RUN ./install-rust-toolchain.sh
 
 
+
 FROM idf
 
 # Install addiitonal dependencies
@@ -24,11 +25,15 @@ RUN apt-get update && apt-get install -y \
   && rm -rf /var/lib/apt/lists/*
 
 # Install PlatformIO CLI
-ENV PLATFORMIO_VERSION="6.0.1"
+#ENV PLATFORMIO_VERSION="6.0.1"
+#
+#RUN pip install -U platformio==${PLATFORMIO_VERSION} && \
+#  mkdir -p /.platformio && \
+#  chmod a+rwx /.platformio
 
-RUN pip install -U platformio==${PLATFORMIO_VERSION} && \
-  mkdir -p /.platformio && \
-  chmod a+rwx /.platformio
+COPY root_bashrc /root/
+RUN  cat /root/root_bashrs >> /root/.bashrc
 
 WORKDIR /project
 RUN bash -c "rustup override set esp"
+RUN bash -c "cargo install cargo-pio"
