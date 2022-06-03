@@ -13,7 +13,16 @@ publish = true
 
 [dependencies]
 anyhow = {version = "1"}
+bytes = "1.1.0"
+log = { version = "0.4", default-features = false }
+serde_json="1"
+#embedded-svc ={version=  "0.17", features = ["experimental", "alloc"]}
+esp-idf-svc ={version=  "0.41", features = ["experimental", "alloc"]}
 embedded-graphics = "0.7"
+epd-gfx = {path="../epd-gfx/"}
+
+
+# TODO: https://github.com/ivmarkov/rust-esp32-std-demo/commit/a39e0892880567b6e955f6f3acb1816259d1d9b1
 
 [dev-dependencies]
 

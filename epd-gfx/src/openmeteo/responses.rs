@@ -47,6 +47,7 @@ pub struct OpenMeteoData {
     pub current_weather: Option<OpenMeteoCurrentWeather>,
 }
 
+
 #[derive(Clone, Debug, PartialEq, Deserialize)]
 pub struct OpenMeteoHourlyVariables {
     /// Timestamp for each entry.
